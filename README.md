@@ -52,10 +52,3 @@ de estado. Os testes do servidor MCP usam um cliente MCP real, conectado em mem�
 Google ADK · Gemini (Flash e Pro) · Agent Runtime · RAG Engine · MCP · Model Armor · Firestore · Cloud Run ·
 OpenTelemetry. Projeto criado com agents-cli (`uv tool install google-agents-cli`). No protótipo, até aqui:
 Python, Pydantic, SDK MCP e pytest.
-
-O que mudou em relação ao README atual, e por quê:
-- Badge do CI: quem abre o repo vê na hora que os testes passam.
-- "O que roda hoje" em vez de "em construção": diz o que existe, com o código de cada peça e o que cada uma garante.
-- Tirei o agents-cli playground do "Como rodar". Hoje ele subiria o agente de clima do template, e isso seria overclaim. Ele volta quando fizermos a integração do agente (item A).
-- Sem GCP para rodar os testes. Removi o cp .env.example e o agents-cli install, que não são necessários para o que roda hoje. Qualquer pessoa consegue reproduzir só com o uv.
-- Limites explícitos: o que é mock e o que ainda não está integrado, seguindo a regra do projeto de não fazer overclaim.
