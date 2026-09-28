@@ -1,0 +1,136 @@
+# Arquitetura de referência
+
+Assistente agêntico para o atendimento de um banco de varejo fictício, o **Banco Exemplo**, no WhatsApp e no
+app. Ele responde com base no conhecimento oficial do banco e executa transações simples. A solução é
+desenhada como **blueprint**: o que é comum a qualquer área vira plataforma; o que é de domínio vira
+configuração.
+
+> **Status:** arquitetura de referência completa; protótipo em construção. A seção
+> [Implementado × proposto](#implementado--proposto) diz o que já existe em código.
+
+## Tese
+
+**"O LLM interpreta, a regra autoriza."** O modelo entende o cliente, conduz a conversa e redige respostas.
+Se uma ação pode ser executada, com quais parâmetros e com qual autenticação, quem decide é código
+determinístico, testável e auditável. A autonomia do modelo fica onde ela se paga.
+
+## Tipos de pedido
+
+| Tipo | Exemplo | Caminho | Exige |
+|---|---|---|---|
+| Informação geral | "Qual a anuidade do cartão?" | Busca na base, com citação | Nada |
+| Consulta | "Qual meu limite?" | Ferramenta de leitura | Número vinculado |
+| Transação | "Bloqueia meu cartão" | Política → confirmação → escrita | Autenticação conforme o risco |
+| Fora de escopo | "Qual ação devo comprar?" | Recusa educada | — |
+
+O escalonamento para humano não é um tipo: é uma saída transversal (pedido do cliente, negativa da política,
+falta de fonte, falhas repetidas, tema sensível, frustração).
+
+**A decisão entre responder e executar não é do modelo:** (1) o LLM classifica numa intenção do catálogo; (2)
+o **catálogo** define tipo, risco, autenticação, limites e fase liberada, e nega o que não conhece; (3) a
+**política** decide; (4) a política gera uma **confirmação amarrada aos parâmetros** (texto fixo, uso único,
+validade curta), o cliente confirma por botão e o executor só aceita o que bate com ela.
+
+## Contexto (C4, nível 1)
+
+![C4 Context](diagramas/diagrama-1.svg)
+
+A camada agêntica convive com o atendimento existente, que é preservado, e o tráfego migra intenção por
+intenção. O app é canal e fator de autenticação. A identidade chega pelo provedor de identidade, nunca pelo
+texto da conversa. A plataforma de IA é sistema externo por ser o único ponto em que dado sai da região (endpoint
+global), e por isso recebe só texto pseudonimizado.
+
+## Containers (C4, nível 2)
+
+![C4 Container](diagramas/diagrama-2.svg)
+
+- **Plataforma compartilhada:** gateway de canal, política, guardrails, auditoria, observabilidade.
+  **Templates:** agente e base de conhecimento por área de negócio; servidor MCP por domínio de sistema.
+- **Política consultada duas vezes:** pelo agente, para conduzir a conversa, e pelo servidor MCP, que barra na
+  execução. Vale a do executor.
+- **Cofre de sessão:** token do cliente e dados reais num armazenamento dedicado, criptografado e com
+  expiração, acessível só ao gateway e ao servidor MCP. O agente não tem acesso; a identidade chega ao MCP
+  pelo contexto autenticado da requisição, nunca por parâmetro escolhido pelo LLM.
+- **Guardrails em dois pontos:** mascaramento no gateway, na região dos dados, antes do agente; filtro de
+  injection e conteúdo no agente, sobre texto já pseudonimizado.
+- **Integrações** só via servidor MCP (pelo gateway de APIs corporativo), gateway de canal ou barramento de
+  eventos. O agente não chama APIs.
+
+## Componentes do agente (C4, nível 3)
+
+![C4 Component](diagramas/diagrama-3.svg)
+
+Grafo determinístico com LLM dentro dos nós. Roxo: componentes que usam LLM (classificador, conhecimento,
+escalonamento). Azul: código. Ferramentas de escrita existem só no subfluxo transacional.
+
+## Fluxo de referência: bloqueio de cartão
+
+![Sequência do bloqueio](diagramas/diagrama-4.svg)
+
+É o caminho mais completo; os demais tipos são recortes dele. O LLM é chamado **uma vez** (classificar). Dados
+do cartão, decisão e execução são código. Sem resposta do sistema, o agente **nunca afirma sucesso**: consulta o
+estado, abre protocolo e reconcilia depois.
+
+## Fluxo de referência: pergunta de conhecimento
+
+Classificação (LLM) → cache semântico para perguntas repetidas (mesma intenção e entidades, documentos
+vigentes; consulta e transação nunca são cacheadas) → busca em documentos vigentes e com dono, com valores
+vindos da tabela oficial → resposta com citação por afirmação (LLM) → verificação de fundamentação; se falhar
+duas vezes, recusa e oferece humano → filtro de saída. Até três chamadas ao modelo por turno: é o fluxo de
+maior risco e maior custo.
+
+## Autenticação progressiva
+
+| Nível | Como se obtém | Libera |
+|---|---|---|
+| 0 | — | Informação geral |
+| 1 | Número vinculado pelo app | Consultas |
+| 2 | Autorização no app + sessão curta | Transações de baixo risco |
+| 3 | Biometria no app para a operação | Transações de risco médio |
+
+A exigência segue o **risco da ação**: o bloqueio temporário, reversível, exige nível 1 e confirmação; o
+desbloqueio, nível 3 e só no app.
+
+## Segurança e dados
+
+- **Defesa em profundidade:** negação por padrão, autenticação por risco, confirmação amarrada, política no
+  executor, escrita fora do contexto do LLM, idempotência, antifraude. O filtro de injection reduz o volume de
+  ataques; a garantia vem das camadas determinísticas.
+- **O LLM redige; quem preenche os valores do cliente é código.** Identidade nunca vai ao modelo; o que o
+  cliente digita vira marcador reversível; retornos de ferramentas usam placeholders. Número de cartão digitado
+  é descartado. O texto da conversa chega **pseudonimizado**, o que reduz o risco mas continua sendo dado
+  pessoal.
+- **Catálogo como ponto de controle:** configuração versionada, alterada com segregação de funções, publicada
+  assinada; um piso de invariantes em código que nenhuma configuração sobrescreve.
+
+## Avaliação e observabilidade
+
+Golden set, red team e regressão em quatro níveis (recuperação, ingestão, resposta final, contínuo); zero
+ataques com escrita ou vazamento; juiz LLM calibrado contra rótulos humanos. Online: qualidade, segurança e
+recontato em 24–72h. Traces em OpenTelemetry com um span por passo, coletor distribuindo para os destinos de
+monitoramento, correlação com a trilha de auditoria.
+
+## Implantação
+
+| Componente | Onde roda |
+|---|---|
+| Gateway, política, servidores MCP | Cloud Run |
+| Agente | ADK no Agent Runtime |
+| Conhecimento | RAG Engine |
+| Cofre, registro de execuções, cache | Firestore (bancos separados) |
+| Auditoria | BigQuery + armazenamento imutável |
+| Modelos | Gemini Flash (padrão) e Gemini Pro (por critério) |
+
+## Implementado × proposto
+
+| Componente | Status |
+|---|---|
+| Arquitetura, decisões e diagramas | ✅ Documentado |
+| Scaffold do agente (ADK + agents-cli) | ✅ Criado |
+| Catálogo de intenções e piso de invariantes | ⏳ Planejado (P1–P2) |
+| Política, confirmação amarrada, idempotência | ⏳ Planejado (P2) |
+| Servidor MCP de cartões (mock) | ⏳ Planejado (P2) |
+| Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
+
+Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
+[plano-prototipo.md](plano-prototipo.md).
