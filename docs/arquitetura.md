@@ -130,7 +130,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Catálogo de intenções e piso de invariantes | ✅ Implementado (P1): `config/catalogo/`, `app/nucleo/catalogo.py`; assinatura é mock |
 | Testes unitários no CI (GitHub Actions) | ✅ Implementado: `.github/workflows/testes.yml`, a cada push e PR |
 | Pipeline de publicação do catálogo (assinatura, validação entre versões) | 📋 Proposto; hoje só existe a função `validar_publicacao` |
-| Política, confirmação amarrada, idempotência | ⏳ Planejado (P2) |
+| Política e confirmação amarrada | ✅ Implementado (P2): `app/nucleo/politica.py`, `app/nucleo/confirmacao.py`; confirmações em memória (mock); fase "assistido" tratada como "autonomo" |
+| Registro de execuções e idempotência | ⏳ Planejado (P2) |
 | Servidor MCP de cartões (mock) | ⏳ Planejado (P2) |
 | Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
 

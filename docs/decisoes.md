@@ -46,6 +46,12 @@ Quando uma decisão mudar, atualize esta página.
   memória livre. → Dado desatualizado, escopo de privacidade, erro de extração e envenenamento de memória.
 - **Classificador.** Nó de entrada do grafo; pergunta direcionada na ambiguidade; no máximo duas tentativas;
   limite de confiança maior para transações e calibrado na avaliação.
+- **Texto de confirmação no catálogo.** Cada transação tem texto fixo na configuração; o piso recusa
+  transação sem ele. → Descartado: o agente redigir a pergunta. → O ponto que autoriza não depende de texto
+  gerado pelo LLM.
+- **Confirmação consumida em qualquer tentativa.** Tentativa com parâmetros, sessão ou intenção divergentes
+  inutiliza a confirmação. → Descartado: permitir nova tentativa com a mesma confirmação. → Quem tenta
+  trocar parâmetros perde a confirmação; o cliente legítimo só confirma de novo.
 
 ## Containers e componentes
 
