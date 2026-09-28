@@ -131,8 +131,10 @@ monitoramento, correlação com a trilha de auditoria.
 | Testes unitários no CI (GitHub Actions) | ✅ Implementado: `.github/workflows/testes.yml`, a cada push e PR |
 | Pipeline de publicação do catálogo (assinatura, validação entre versões) | 📋 Proposto; hoje só existe a função `validar_publicacao` |
 | Política e confirmação amarrada | ✅ Implementado (P2): `app/nucleo/politica.py`, `app/nucleo/confirmacao.py`; confirmações em memória (mock); fase "assistido" tratada como "autonomo" |
-| Registro de execuções e idempotência | ⏳ Planejado (P2) |
-| Servidor MCP de cartões (mock) | ⏳ Planejado (P2) |
+| Registro de execuções e idempotência | ✅ Implementado (P2): `app/nucleo/execucoes.py`; chave = id da confirmação; em memória (mock) |
+| Servidor MCP de cartões | ✅ Implementado (P2): `app/mcp_cartoes/`, SDK MCP 1.x real sobre sistema de cartões mock com timeout simulado; sessão e confirmação pelo `_meta` |
+| Cofre de sessão | ✅ Mock (P2): `app/nucleo/sessao.py`, em memória, sem expiração |
+| Transporte HTTP autenticado do MCP, anotações de leitura/escrita, outbox de eventos (D7) | 📋 Proposto |
 | Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:

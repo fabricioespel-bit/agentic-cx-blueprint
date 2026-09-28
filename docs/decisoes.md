@@ -67,6 +67,14 @@ Quando uma decisão mudar, atualize esta página.
   áreas. → Descartado: um MCP por área de negócio. → Evita integrações duplicadas.
 - **Integrações** pelo gateway de APIs corporativo, com troca de token (o sistema recebe identidade de serviço e
   o cliente como contexto verificado).
+- **SDK MCP 1.x.** → Descartado: 2.x. → O ADK 2.8 exige `mcp<2`; o `McpToolset` do agente usa a API 1.x.
+- **Identidade e confirmação no `_meta` da requisição MCP.** → Descartado: parâmetros da ferramenta. →
+  Ficam fora do schema que o LLM vê; em produção, o token vem no header HTTP autenticado.
+- **Retomada de execução incerta sem nova confirmação.** Mesma chave, mesmos dados: consulta o estado e,
+  se não aplicado, reexecuta. → Descartado: pedir nova confirmação. → A autorização já foi dada para aquela
+  chave exata; bloqueio atrasado custa mais que um bloqueio reexecutado.
+- **Limite diário conta execuções pendentes e incertas.** → Descartado: contar só as concluídas. → Na
+  dúvida, a execução pode ter acontecido.
 - **Local do catálogo no protótipo.** `config/catalogo/`, fora de `app/`. → Se houver deploy no Agent Runtime,
   mover para `app/config/`, porque o pacote de deploy leva só `app/`.
 
