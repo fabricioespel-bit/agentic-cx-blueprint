@@ -68,6 +68,7 @@ class Intencao(BaseModel):
     exige_confirmacao: bool = False
     limite_diario: int | None = Field(default=None, ge=1)
     ferramenta: str | None = None
+    texto_confirmacao: str | None = None
 
     @property
     def escrita(self) -> bool:
@@ -79,6 +80,10 @@ class Intencao(BaseModel):
         # validação; a mensagem começa com "invariante" para ser rastreável.
         if self.escrita and not self.exige_confirmacao:
             raise ValueError(f"invariante: transação '{self.id}' sem confirmação")
+        if self.escrita and not self.texto_confirmacao:
+            raise ValueError(
+                f"invariante: transação '{self.id}' sem texto de confirmação"
+            )
         if self.escrita and not self.reversivel and self.nivel_autenticacao < 3:
             raise ValueError(
                 f"invariante: transação irreversível '{self.id}' abaixo do nível 3"

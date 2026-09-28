@@ -50,6 +50,7 @@ intencoes:
     limite_diario: 3
     fase: assistido
     ferramenta: bloquear_cartao
+    texto_confirmacao: "Bloquear temporariamente o cartão final {final_cartao}? O desbloqueio é feito só no app."
 
   # O desbloqueio é o sentido arriscado: nível 3 (biometria) e só no app.
   - id: desbloquear_cartao
@@ -63,6 +64,7 @@ intencoes:
     limite_diario: 2
     fase: shadow
     ferramenta: desbloquear_cartao
+    texto_confirmacao: "Desbloquear o cartão final {final_cartao}?"
 
   - id: fora_de_escopo
     descricao: "Pedidos que o assistente não atende (ex.: recomendação de investimento); recusa educada."

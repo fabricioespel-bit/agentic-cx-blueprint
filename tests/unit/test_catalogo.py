@@ -26,6 +26,7 @@ def transacao(**campos) -> dict:
         "reversivel": True,
         "exige_confirmacao": True,
         "ferramenta": "bloquear_cartao",
+        "texto_confirmacao": "Bloquear o cartão final {final_cartao}?",
     }
     return base | campos
 
@@ -121,3 +122,8 @@ def test_intencao_nova_em_shadow_e_existente_promovida_aceitas():
 def test_primeira_publicacao_exige_shadow_em_tudo():
     with pytest.raises(ViolacaoDeInvariante):
         validar_publicacao(catalogo(transacao()), None)
+
+
+def test_transacao_sem_texto_de_confirmacao_viola_piso():
+    with pytest.raises(ValidationError, match="sem texto de confirmação"):
+        Intencao.model_validate(transacao(texto_confirmacao=None))

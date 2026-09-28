@@ -1,0 +1,26 @@
+# Gate mínimo: lint do núcleo e testes unitários (sem LLM, sem GCP) a cada push e PR.
+name: testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unitarios:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Instalar dependências (lock congelado)
+        run: uv sync --locked
+      - name: Lint do núcleo
+        run: uv run --with ruff ruff check app/nucleo tests/unit
+      - name: Testes unitários
+        run: uv run pytest tests/unit -q

@@ -128,6 +128,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Arquitetura, decisões e diagramas | ✅ Documentado |
 | Scaffold do agente (ADK + agents-cli) | ✅ Criado |
 | Catálogo de intenções e piso de invariantes | ✅ Implementado (P1): `config/catalogo/`, `app/nucleo/catalogo.py`; assinatura é mock |
+| Testes unitários no CI (GitHub Actions) | ✅ Implementado: `.github/workflows/testes.yml`, a cada push e PR |
+| Pipeline de publicação do catálogo (assinatura, validação entre versões) | 📋 Proposto; hoje só existe a função `validar_publicacao` |
 | Política, confirmação amarrada, idempotência | ⏳ Planejado (P2) |
 | Servidor MCP de cartões (mock) | ⏳ Planejado (P2) |
 | Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
