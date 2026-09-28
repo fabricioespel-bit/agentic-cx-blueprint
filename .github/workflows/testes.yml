@@ -20,7 +20,9 @@ jobs:
           enable-cache: true
       - name: Instalar dependências (lock congelado)
         run: uv sync --locked
-      - name: Lint do núcleo
-        run: uv run --with ruff ruff check app/nucleo tests/unit
+      - name: Lint e formatação do núcleo
+        run: |
+          uv run --with ruff ruff check app/nucleo app/mcp_cartoes tests/unit
+          uv run --with ruff ruff format --check app/nucleo app/mcp_cartoes tests/unit
       - name: Testes unitários
         run: uv run pytest tests/unit -q
