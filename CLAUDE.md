@@ -64,8 +64,10 @@ Ask the user: Option A (simple single-project) or Option B (full CI/CD pipeline 
 
 ## Regras deste projeto
 
-- **Propor antes de executar.** Antes de cada passo, descreva o que vai fazer (arquivos, comandos, custos) e
-  espere um comando explícito para executar. A aprovação vale só para aquele passo; não encadeie fases.
+- **Fabricio executa; o Claude orienta.** O Claude explica, propõe e entrega arquivos e comandos prontos;
+  quem cria arquivos e roda comandos é o Fabricio. O Claude só escreve ou executa algo quando receber um
+  pedido explícito para isso ("pode criar você"). "Ok" ou "vamos seguir" aprovam o conteúdo, não delegam a
+  execução. A aprovação vale só para aquele passo; não encadeie fases.
 - **Repositório público e genérico.** Nada que identifique clientes, empresas ou pessoas reais. O banco é sempre
   o **Banco Exemplo**; dados, produtos e documentos são fictícios.
 - **Sem overclaim.** O que é mock fica explícito no código e na documentação. Mantenha atualizada a tabela

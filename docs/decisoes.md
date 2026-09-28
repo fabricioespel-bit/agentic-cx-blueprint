@@ -61,6 +61,8 @@ Quando uma decisão mudar, atualize esta página.
   áreas. → Descartado: um MCP por área de negócio. → Evita integrações duplicadas.
 - **Integrações** pelo gateway de APIs corporativo, com troca de token (o sistema recebe identidade de serviço e
   o cliente como contexto verificado).
+- **Local do catálogo no protótipo.** `config/catalogo/`, fora de `app/`. → Se houver deploy no Agent Runtime,
+  mover para `app/config/`, porque o pacote de deploy leva só `app/`.
 
 ## Segurança e governança
 

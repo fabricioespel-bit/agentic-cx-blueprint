@@ -1,0 +1,73 @@
+# Catálogo de intenções da área de cartões do Banco Exemplo (fictício).
+#
+# O catálogo define o que o agente pode fazer: tipo, risco, autenticação exigida, canais,
+# limites e fase de liberação de cada intenção. O que não está aqui é negado.
+# O piso de invariantes em app/nucleo/catalogo.py vale acima desta configuração.
+#
+# Mock: em produção o catálogo é publicado assinado e somente leitura (decisão K1);
+# aqui é um arquivo local sem assinatura.
+
+versao: "2026.09.1"
+area: cartoes
+
+intencoes:
+  - id: duvida_produtos_tarifas
+    descricao: Perguntas gerais sobre cartões, anuidade e tarifas, respondidas pela base de conhecimento.
+    tipo: informacao
+    risco: baixo
+    nivel_autenticacao: 0
+    canais: [whatsapp, app]
+    fase: autonomo
+
+  - id: listar_cartoes
+    descricao: Lista os cartões do cliente (final, tipo e situação).
+    tipo: consulta
+    risco: baixo
+    nivel_autenticacao: 1
+    canais: [whatsapp, app]
+    fase: autonomo
+    ferramenta: listar_cartoes
+
+  - id: consultar_limite
+    descricao: Informa limite total e disponível de um cartão do cliente.
+    tipo: consulta
+    risco: baixo
+    nivel_autenticacao: 1
+    canais: [whatsapp, app]
+    fase: autonomo
+    ferramenta: consultar_limite
+
+  # Risco assimétrico (D3): o bloqueio temporário é reversível e o atraso causa mais dano
+  # que um bloqueio indevido, por isso exige só nível 1 mais confirmação.
+  - id: bloquear_cartao_temporario
+    descricao: Bloqueia temporariamente um cartão do cliente (perda, suspeita de uso indevido).
+    tipo: transacao
+    risco: medio
+    nivel_autenticacao: 1
+    reversivel: true
+    exige_confirmacao: true
+    canais: [whatsapp, app]
+    limite_diario: 3
+    fase: assistido
+    ferramenta: bloquear_cartao
+
+  # O desbloqueio é o sentido arriscado: nível 3 (biometria) e só no app.
+  - id: desbloquear_cartao
+    descricao: Desbloqueia um cartão bloqueado temporariamente.
+    tipo: transacao
+    risco: alto
+    nivel_autenticacao: 3
+    reversivel: true
+    exige_confirmacao: true
+    canais: [app]
+    limite_diario: 2
+    fase: shadow
+    ferramenta: desbloquear_cartao
+
+  - id: fora_de_escopo
+    descricao: "Pedidos que o assistente não atende (ex.: recomendação de investimento); recusa educada."
+    tipo: fora_de_escopo
+    risco: baixo
+    nivel_autenticacao: 0
+    canais: [whatsapp, app]
+    fase: autonomo

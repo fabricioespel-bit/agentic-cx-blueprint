@@ -127,7 +127,7 @@ monitoramento, correlação com a trilha de auditoria.
 |---|---|
 | Arquitetura, decisões e diagramas | ✅ Documentado |
 | Scaffold do agente (ADK + agents-cli) | ✅ Criado |
-| Catálogo de intenções e piso de invariantes | ⏳ Planejado (P1–P2) |
+| Catálogo de intenções e piso de invariantes | ✅ Implementado (P1): `config/catalogo/`, `app/nucleo/catalogo.py`; assinatura é mock |
 | Política, confirmação amarrada, idempotência | ⏳ Planejado (P2) |
 | Servidor MCP de cartões (mock) | ⏳ Planejado (P2) |
 | Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
