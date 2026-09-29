@@ -75,6 +75,20 @@ Quando uma decisão mudar, atualize esta página.
   chave exata; bloqueio atrasado custa mais que um bloqueio reexecutado.
 - **Limite diário conta execuções pendentes e incertas.** → Descartado: contar só as concluídas. → Na
   dúvida, a execução pode ter acontecido.
+- **Agente como grafo (`Workflow` do ADK) com o LLM só no classificador.** O classificador tem saída
+  estruturada, temperatura 0 e nenhuma ferramenta; rotas, chamadas ao MCP e respostas são código. →
+  Descartado: `Agent` com as ferramentas do MCP. → A escrita só é alcançável pelo nó de execução, depois de
+  uma confirmação comparada por código; não há caminho do LLM até ela.
+- **Conversa de vários turnos por estado da sessão.** Pendência de escolha de cartão ou de confirmação fica no
+  estado; com pendência, a mensagem vai direto ao código, sem LLM. → Descartado: HITL (`RequestInput`) do
+  ADK. → Funciona igual em qualquer canal de texto e não depende de suporte da interface.
+- **Pré-check antes de pedir dados.** `Politica.verificar` nega pela intenção e pelo contexto antes de
+  perguntar o cartão. → Descartado: só avaliar com parâmetros completos. → Não pedir ao cliente um dado que
+  não vai ser usado.
+- **Adequações do protótipo no canal.** Confirmação por "SIM" digitado com correspondência exata (a D5 prevê
+  isso como alternativa; em produção, botão do WhatsApp ou do app, cujo id carrega a confirmação); sessão de
+  demonstração aberta no primeiro turno (em produção, pelo gateway); servidor MCP no mesmo processo, com
+  transporte em memória (em produção, Cloud Run com HTTP autenticado e estado no Firestore).
 - **Local do catálogo no protótipo.** `config/catalogo/`, fora de `app/`. → Se houver deploy no Agent Runtime,
   mover para `app/config/`, porque o pacote de deploy leva só `app/`.
 
