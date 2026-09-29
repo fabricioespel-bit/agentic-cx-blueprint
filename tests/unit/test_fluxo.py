@@ -87,6 +87,30 @@ def test_timeout_no_sistema_nao_afirma_sucesso(conversa):
     assert "está bloqueado" not in resposta
 
 
+@pytest.mark.parametrize(
+    "mensagens",
+    [["bloquear_cartao_temporario 1234"], ["bloquear_cartao_temporario", "1234"]],
+    ids=["final_na_mensagem", "escolha_do_cartao"],
+)
+def test_cartao_ja_bloqueado_nao_pede_confirmacao(conversa, mensagens):
+    conversa.ambiente.sistema.bloquear("c-001")  # bloqueado pelo app
+    *_, resposta = [conversa.diz(m) for m in mensagens]
+    assert "O cartão final 1234 já está bloqueado" in resposta
+    assert "Responda SIM" not in resposta
+    assert conversa.ambiente.sistema.chamadas_bloqueio == 1
+    # Sem pendência: a próxima mensagem volta ao classificador.
+    assert "fora do escopo" in conversa.diz("fora_de_escopo")
+
+
+def test_cartao_bloqueado_antes_do_sim_nao_responde_falha(conversa):
+    conversa.diz("bloquear_cartao_temporario 1234")
+    conversa.ambiente.sistema.bloquear("c-001")  # bloqueado pelo app nesse meio-tempo
+    resposta = conversa.diz("SIM")
+    assert "já está bloqueado" in resposta
+    assert "Não consegui concluir" not in resposta
+    assert conversa.ambiente.sistema.chamadas_bloqueio == 1
+
+
 def test_confirmacao_expirada_nao_executa(conversa, relogio):
     conversa.diz("bloquear_cartao_temporario 1234")
     relogio.avancar(minutes=5)

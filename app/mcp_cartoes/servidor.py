@@ -74,6 +74,10 @@ class ServicoCartoes:
                 return self._retomar(anterior)
         self._autorizar(BLOQUEIO, parametros, contexto, confirmacao_id)
         cartao = self._cartao(contexto.cliente_ref, final_cartao)
+        # Idempotência de negócio: bloquear o que já está bloqueado não abre execução,
+        # não gera protocolo nem conta no limite diário.
+        if self._sistema.situacao(cartao.id) is Situacao.BLOQUEADO:
+            raise Recusa("cartao_ja_bloqueado")
         execucao = self._registro.iniciar(
             confirmacao_id, contexto.cliente_ref, BLOQUEIO, parametros
         )

@@ -85,6 +85,11 @@ Quando uma decisão mudar, atualize esta página.
 - **Pré-check antes de pedir dados.** `Politica.verificar` nega pela intenção e pelo contexto antes de
   perguntar o cartão. → Descartado: só avaliar com parâmetros completos. → Não pedir ao cliente um dado que
   não vai ser usado.
+- **Idempotência de negócio.** Pedido sem efeito (bloquear cartão já bloqueado) é recusado no executor, pela
+  situação no sistema de origem, sem abrir execução, gerar protocolo ou contar no limite diário; o agente
+  consulta a situação antes de pedir confirmação e responde com texto fixo. → Descartado: só a idempotência
+  técnica (mesma confirmação executa uma vez). → Não afirmar ação que não aconteceu; o cartão pode ter sido
+  bloqueado por outro canal, que o registro de execuções não conhece.
 - **Adequações do protótipo no canal.** Confirmação por "SIM" digitado com correspondência exata (a D5 prevê
   isso como alternativa; em produção, botão do WhatsApp ou do app, cujo id carrega a confirmação); sessão de
   demonstração aberta no primeiro turno (em produção, pelo gateway); servidor MCP no mesmo processo, com

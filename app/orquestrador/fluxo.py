@@ -27,6 +27,8 @@ from app.orquestrador.ambiente import Ambiente
 
 # intenções cujo parâmetro é o final do cartão
 PEDEM_CARTAO = {"consultar_limite", "bloquear_cartao_temporario"}
+# Intenção com pré-check de situação do cartão (idempotência de negócio)
+BLOQUEIO = "bloquear_cartao_temporario"
 # Lista fechada de respostas que confirmam (D5)
 CONFIRMA = {"sim"}
 # Motivos de recusa do executor ligados à confirmação.
@@ -87,13 +89,27 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
     def contexto(ctx: Context):
         return ambiente.cofre.resolver(ctx.state.get("sessao"))
 
-    def prosseguir(ctx: Context, intencao_id: str, final: str | None) -> Event:
+    async def ja_bloqueado(ctx: Context, final: str) -> bool:
+        """Pré-check de experiência: a garantia é a recusa do executor."""
+        resposta = await ambiente.chamar("listar_cartoes", {}, ctx.state["sessao"])
+        if not resposta.ok:
+            return False  # sem a lista, segue; o executor recusa se preciso
+        return any(
+            c["final"] == final and c["situacao"] == "bloqueado"
+            for c in resposta.dados["cartoes"]
+        )
+
+    async def prosseguir(ctx: Context, intencao_id: str, final: str | None) -> Event:
         """Com a intenção e os parâmetros completos: consulta ou pede confirmação."""
         intencao = ambiente.catalogo.obter(intencao_id)
         parametros = {"final_cartao": final} if intencao_id in PEDEM_CARTAO else {}
         if not intencao.escrita:
             pedido = {"intencao": intencao_id, "parametros": parametros}
             return Event(output=pedido, route="consultar")
+        if intencao_id == BLOQUEIO and await ja_bloqueado(ctx, final):
+            return Event(
+                output=textos.JA_BLOQUEADO.format(final=final), route="responder"
+            )
         decisao = ambiente.politica.avaliar(intencao_id, parametros, contexto(ctx))
         if decisao.resultado is not Resultado.CONFIRMAR:
             return Event(
@@ -118,7 +134,7 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
         rota = "retomar" if ctx.state.get("pendente") else "classificar"
         return Event(output=_texto(node_input), route=rota, state=estado)
 
-    def decidir(ctx: Context, node_input: dict) -> Event:
+    async def decidir(ctx: Context, node_input: dict) -> Event:
         classificacao = Classificacao.model_validate(node_input)
         try:
             intencao = ambiente.catalogo.obter(classificacao.intencao)
@@ -135,7 +151,7 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
             return Event(output=textos.INFORMACAO, route="responder")
         if intencao.id in PEDEM_CARTAO and not classificacao.final_cartao:
             return Event(output=intencao.id, route="escolher_cartao")
-        return prosseguir(ctx, intencao.id, classificacao.final_cartao)
+        return await prosseguir(ctx, intencao.id, classificacao.final_cartao)
 
     async def escolher_cartao(ctx: Context, node_input: str):
         resposta = await ambiente.chamar("listar_cartoes", {}, ctx.state["sessao"])
@@ -166,7 +182,7 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
             return Event(
                 output=textos.CARTAO_NAO_ENCONTRADO, route="responder", state=limpar
             )
-        evento = prosseguir(ctx, pendente["intencao"], digitado.group(1))
+        evento = await prosseguir(ctx, pendente["intencao"], digitado.group(1))
         evento.actions.state_delta.setdefault("pendente", None)
         return evento
 
@@ -209,10 +225,14 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
             confirmacao=node_input["confirmacao"],
         )
         if not resposta.ok:
-            confirmacao_falhou = resposta.motivo in FALHAS_DE_CONFIRMACAO
-            yield _mensagem(
-                textos.CONFIRMACAO_INVALIDA if confirmacao_falhou else textos.FALHA
-            )
+            if resposta.motivo == "cartao_ja_bloqueado":
+                final = node_input["parametros"]["final_cartao"]
+                texto = textos.JA_BLOQUEADO.format(final=final)
+            elif resposta.motivo in FALHAS_DE_CONFIRMACAO:
+                texto = textos.CONFIRMACAO_INVALIDA
+            else:
+                texto = textos.FALHA
+            yield _mensagem(texto)
             return
         dados = resposta.dados
         modelo = (

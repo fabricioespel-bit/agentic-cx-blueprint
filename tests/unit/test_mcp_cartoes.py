@@ -59,6 +59,11 @@ class Ambiente:
         cartoes = self.sistema.cartoes_do_cliente("cli-1")
         return next(c for c in cartoes if c.final == final).situacao
 
+    def desbloquear_pelo_app(self, final="1234"):
+        # O desbloqueio é feito só no app, fora deste servidor; o teste simula.
+        cartoes = self.sistema.cartoes_do_cliente("cli-1")
+        next(c for c in cartoes if c.final == final).situacao = Situacao.ATIVO
+
 
 @pytest.fixture
 def ambiente(relogio):
@@ -147,6 +152,13 @@ def test_mesma_chave_com_outro_cartao_recusada(ambiente):
     assert ambiente.situacao("5678") is Situacao.ATIVO
 
 
+def test_cartao_ja_bloqueado_recusado_sem_nova_execucao(ambiente):
+    ambiente.sistema.bloquear("c-001")  # bloqueado por outro canal (app, central)
+    texto, erro = ambiente.bloquear(ambiente.confirmar())
+    assert erro and "cartao_ja_bloqueado" in texto
+    assert ambiente.sistema.chamadas_bloqueio == 1
+
+
 def test_timeout_depois_de_aplicar_conclui_pela_consulta_de_estado(ambiente):
     ambiente.sistema.proxima_falha = Falha.TIMEOUT_DEPOIS
     resposta, _ = ambiente.bloquear(ambiente.confirmar())
@@ -184,6 +196,7 @@ def test_reconciliacao_conclui_o_que_o_sistema_aplicou_depois(ambiente):
 def test_limite_diario_conta_execucoes_registradas(ambiente):
     for final in ("1234", "5678", "1234"):
         ambiente.bloquear(ambiente.confirmar(final), final=final)
+        ambiente.desbloquear_pelo_app(final)
     decisao = ambiente.politica.avaliar(
         "bloquear_cartao_temporario", {"final_cartao": "5678"}, CONTEXTO
     )

@@ -52,6 +52,10 @@ EM_VERIFICACAO = (
     "Pedi o bloqueio do cartão final {final}, mas o sistema ainda não confirmou. "
     "Acompanhe pelo protocolo {protocolo}."
 )
+JA_BLOQUEADO = (
+    "O cartão final {final} já está bloqueado; não fiz nenhuma alteração. "
+    "O desbloqueio é feito só no app do Banco Exemplo."
+)
 CONFIRMACAO_INVALIDA = (
     "A confirmação não vale mais. Nada foi alterado; se quiser, é só pedir de novo."
 )

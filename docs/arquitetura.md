@@ -135,7 +135,7 @@ monitoramento, correlação com a trilha de auditoria.
 | Servidor MCP de cartões | ✅ Implementado (P2): `app/mcp_cartoes/`, SDK MCP 1.x real sobre sistema de cartões mock com timeout simulado; sessão e confirmação pelo `_meta` |
 | Cofre de sessão | ✅ Mock (P2): `app/nucleo/sessao.py`, em memória, sem expiração |
 | Agente integrado ao núcleo (grafo do ADK) | ✅ Implementado: `app/agent.py`, `app/orquestrador/`; LLM só no classificador; fluxos de bloqueio, consulta de limite e lista de cartões; negações com texto fixo. Adequações: confirmação por "SIM" digitado (em produção, botão), sessão de demonstração (em produção, gateway), servidor MCP no mesmo processo. [Evidência no playground](evidencias/playground-2026-09-29.md) |
-| Idempotência de negócio (não oferecer bloqueio de cartão já bloqueado) | ⏳ Pendente: hoje só a idempotência técnica (mesma confirmação executa uma vez) |
+| Idempotência de negócio (não oferecer bloqueio de cartão já bloqueado) | ✅ Implementado: recusa `cartao_ja_bloqueado` no executor (`app/mcp_cartoes/servidor.py`), pela situação no sistema mock; pré-check no agente antes da confirmação e texto fixo também para a corrida entre o pré-check e o "SIM" |
 | Transporte HTTP autenticado do MCP, anotações de leitura/escrita, outbox de eventos (D7) | 📋 Proposto |
 | Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
 
