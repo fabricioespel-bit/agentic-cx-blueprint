@@ -77,6 +77,13 @@ class Politica:
         self._confirmacoes = confirmacoes
         self._contar = contar_execucoes_hoje
 
+    def verificar(self, intencao_id: str, contexto: Contexto) -> Decisao:
+        """Pré-check sem parametros: nega cedo, antes de pedir dados ao cliente."""
+        intencao = self._verificar(intencao_id, contexto)
+        if isinstance(intencao, Decisao):
+            return intencao
+        return Decisao(Resultado.PERMITIR)
+
     def avaliar(
         self, intencao_id: str, parametros: Mapping[str, Any], contexto: Contexto
     ) -> Decisao:

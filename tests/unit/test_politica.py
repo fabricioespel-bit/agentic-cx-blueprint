@@ -174,3 +174,10 @@ def test_limite_diario(relogio, execucoes_hoje, resultado, motivo):
     )
     decisao = politica.avaliar("bloquear_cartao_temporario", PARAMS, WHATSAPP_N1)
     assert (decisao.resultado, decisao.motivo) == (resultado, motivo)
+
+
+def test_verificar_nega_cedo_sem_emitir_confirmacao(politica):
+    negado = politica.verificar("desbloquear_cartao", WHATSAPP_N1)
+    permitido = politica.verificar("bloquear_cartao_temporario", WHATSAPP_N1)
+    assert negado.motivo is Motivo.CANAL_NAO_PERMITIDO
+    assert (permitido.resultado, permitido.confirmacao) == (Resultado.PERMITIR, None)
