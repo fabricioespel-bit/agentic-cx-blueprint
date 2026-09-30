@@ -1,0 +1,54 @@
+# Tabela oficial de valores do Banco Exemplo. Todos os valores são fictícios.
+#
+# Única fonte de números nas respostas de conhecimento: os documentos citam as chaves
+# como {{chave}} e o código preenche o valor depois da verificação; o LLM nunca
+# escreve um número.
+#
+# Protótipo: este arquivo simula a tabela publicada. Em produção, os valores vêm do
+# sistema de produtos e tarifas (ou de uma lista mantida pela área de produto, com
+# aprovação), lidos por ferramenta de leitura; ninguém edita YAML. Mudança de valor
+# vale sem reindexar documentos.
+#
+# tipo: reais (valor em texto, duas casas), percentual (ao mês) ou inteiro.
+
+versao: "2026.09"
+vigente_desde: 2026-09-01
+dono: produtos-cartoes
+
+valores:
+  anuidade_classico:
+    descricao: Parcela mensal da anuidade do Cartão Exemplo Clássico
+    tipo: reais
+    valor: "19.90"
+  anuidade_platinum:
+    descricao: Parcela mensal da anuidade do Cartão Exemplo Platinum
+    tipo: reais
+    valor: "49.90"
+  parcelas_anuidade:
+    descricao: Número de parcelas mensais da anuidade
+    tipo: inteiro
+    valor: 12
+  gasto_isencao_platinum:
+    descricao: Gasto mensal a partir do qual a parcela da anuidade Platinum é isenta
+    tipo: reais
+    valor: "3000.00"
+  segunda_via_cartao:
+    descricao: Emissão de segunda via do cartão
+    tipo: reais
+    valor: "15.00"
+  saque_credito:
+    descricao: Tarifa por saque na função crédito
+    tipo: reais
+    valor: "19.90"
+  juros_rotativo:
+    descricao: Juros do crédito rotativo
+    tipo: percentual
+    valor: "9.90"
+  multa_atraso:
+    descricao: Multa sobre o valor em atraso
+    tipo: percentual
+    valor: "2.00"
+  juros_mora:
+    descricao: Juros de mora
+    tipo: percentual
+    valor: "1.00"
