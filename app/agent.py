@@ -4,19 +4,26 @@ from google.adk.apps import App
 from google.adk.models import Gemini
 from google.genai import types
 
+from app.conhecimento.redator import criar_redator
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
 
 MODEL = "gemini-3.8-flash"
+# Só na revisão de resposta reprovada pela verificação (decisão de multimodelo).
+MODEL_REVISOR = "gemini-2.5-pro"
+
+
+def _gemini(modelo: str) -> Gemini:
+    return Gemini(model=modelo, retry_options=types.HttpRetryOptions(attempts=3))
+
 
 ambiente = criar_ambiente()
 
 root_agent = criar_workflow(
     ambiente,
-    classificador=criar_classificador(
-        ambiente.catalogo,
-        Gemini(model=MODEL, retry_options=types.HttpRetryOptions(attempts=3)),
-    ),
+    classificador=criar_classificador(ambiente.catalogo, _gemini(MODEL)),
+    redator=criar_redator("redator", _gemini(MODEL)),
+    revisor=criar_redator("revisor", _gemini(MODEL_REVISOR)),
     # Keep in sync with agents-cli-manifest.yaml: agents-cli derives this name
     # from the project `name:` recorded there, and telemetry reports it as
     # gen_ai.agent.name. Renaming the agent only here makes the two disagree,

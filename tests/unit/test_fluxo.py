@@ -1,6 +1,7 @@
 """Conversas completas pelo grafo do agente, com classificador falso. Sem LLM."""
 
 import asyncio
+from datetime import UTC, datetime
 
 import pytest
 from google.adk.apps import App
@@ -13,10 +14,12 @@ from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_workflow
 
 # O classificador falso lê a mensagem como "intencao" ou "intencao final".
-# Ex.: "bloquear_cartao_temporario 1234".
+# Ex.: "bloquear_cartao_temporario 1234". Mensagem terminada em "?" é dúvida.
 
 
 def classificador(node_input: str) -> Event:
+    if node_input.endswith("?"):
+        return Event(output={"intencao": "duvida_produtos_tarifas"})
     intencao, _, final = node_input.partition(" ")
     return Event(output={"intencao": intencao, "final_cartao": final or None})
 
@@ -24,11 +27,28 @@ def classificador(node_input: str) -> Event:
 class Conversa:
     def __init__(self, relogio):
         self.ambiente = criar_ambiente(relogio=relogio)
-        agente = criar_workflow(self.ambiente, classificador, nome="teste")
+        # Redatores falsos: devolvem a resposta definida pelo teste e guardam o pedido
+        # que receberam, para o teste conferir o que o LLM teria visto.
+        self.redacoes: dict[str, dict] = {}
+        self.pedidos: dict[str, str] = {}
+
+        def redator(node_input: str) -> Event:
+            return self._redigir("redator", node_input)
+
+        def revisor(node_input: str) -> Event:
+            return self._redigir("revisor", node_input)
+
+        agente = criar_workflow(
+            self.ambiente, classificador, redator, revisor, nome="teste"
+        )
         self.runner = InMemoryRunner(app=App(name="teste", root_agent=agente))
         self.sessao = asyncio.run(
             self.runner.session_service.create_session(app_name="teste", user_id="u")
         )
+
+    def _redigir(self, papel: str, pedido: str) -> Event:
+        self.pedidos[papel] = pedido
+        return Event(output=self.redacoes[papel])
 
     def diz(self, texto: str) -> str:
         async def _turno():
@@ -139,9 +159,67 @@ def test_lista_de_cartoes(conversa):
     assert "9012" not in resposta
 
 
-def test_informacao_geral_nao_improvisa(conversa):
-    assert "Ainda não respondo dúvidas" in conversa.diz("duvida_produtos_tarifas")
-
-
 def test_intencao_inventada_pelo_classificador_e_negada(conversa):
     assert "Não consigo fazer esse pedido" in conversa.diz("transferir_pix")
+
+
+# Conhecimento. O corpus vale a partir de 1º/set/2026; o relógio dos testes começa antes.
+ANUIDADE = "cartao-classico#anuidade"
+PERGUNTA = "Qual a anuidade do cartão Clássico?"
+
+
+def afirmacao(texto: str, *fontes: str) -> dict:
+    return {"afirmacoes": [{"texto": texto, "fontes": list(fontes)}]}
+
+
+BOA = afirmacao(
+    "A anuidade do Clássico é de {{parcelas_anuidade}} parcelas de "
+    "{{anuidade_classico}}.",
+    ANUIDADE,
+)
+
+
+@pytest.fixture
+def vigente(conversa, relogio):
+    relogio.agora = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+    return conversa
+
+
+def test_duvida_respondida_com_valor_da_tabela_e_fonte(vigente):
+    vigente.redacoes["redator"] = BOA
+    assert vigente.diz(PERGUNTA) == (
+        "A anuidade do Clássico é de 12 parcelas de R$ 19,90.\n\n"
+        "Fontes consultadas: Cartão Exemplo Clássico, Anuidade."
+    )
+    # O LLM vê o marcador, nunca o valor; e o revisor não foi chamado.
+    assert "{{anuidade_classico}}" in vigente.pedidos["redator"]
+    assert "19,90" not in vigente.pedidos["redator"]
+    assert "revisor" not in vigente.pedidos
+
+
+def test_reprovada_vai_ao_revisor_com_os_problemas(vigente):
+    vigente.redacoes["redator"] = afirmacao(
+        "A anuidade do Clássico é {{anuidade_platinum}}.", ANUIDADE
+    )
+    vigente.redacoes["revisor"] = BOA
+    assert "R$ 19,90" in vigente.diz(PERGUNTA)
+    assert "valor sem fonte citada: anuidade_platinum" in vigente.pedidos["revisor"]
+
+
+def test_reprovada_duas_vezes_recusa_sem_texto_do_llm(vigente):
+    vigente.redacoes["redator"] = afirmacao("A anuidade é R$ 9,90.", ANUIDADE)
+    vigente.redacoes["revisor"] = afirmacao("A anuidade é R$ 9,90.", ANUIDADE)
+    resposta = vigente.diz(PERGUNTA)
+    assert "Não encontrei essa informação" in resposta
+    assert "9,90" not in resposta
+
+
+def test_sem_trecho_nao_chama_o_llm(vigente):
+    assert "Não encontrei essa informação" in vigente.diz("Vai chover amanhã?")
+    assert vigente.pedidos == {}
+
+
+def test_documento_ainda_nao_vigente_nao_e_usado(conversa):
+    # Relógio em 1º/jan/2026: nenhum documento do corpus vale ainda.
+    assert "Não encontrei essa informação" in conversa.diz(PERGUNTA)
+    assert conversa.pedidos == {}

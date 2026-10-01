@@ -28,14 +28,15 @@ NEGACOES_POR_INTENCAO = {
     ),
 }
 
-INFORMACAO = (
-    "Ainda não respondo dúvidas sobre produtos e tarifas por aqui. Posso consultar o "
-    "limite ou bloquear um cartão."
+SEM_FONTE = (
+    "Não encontrei essa informação na base do Banco Exemplo. Se quiser, te encaminho "
+    "para um atendente."
 )
+FONTES = "Fontes consultadas: {lista}."
 
 FORA_DE_ESCOPO = (
-    "Esse assunto está fora do escopo do assistente. Posso consultar o limite e "
-    "bloquear o cartão."
+    "Esse assunto está fora do escopo do assistente. Posso tirar dúvidas sobre cartões "
+    "e tarifas, consultar o limite e bloquear o cartão."
 )
 
 PERGUNTA_CARTAO = "De qual cartão? Responda com o final do número: {opcoes}"

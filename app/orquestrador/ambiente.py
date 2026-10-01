@@ -7,11 +7,15 @@ servidor MCP roda em serviço próprio e a sessão é aberta pelo gateway de can
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from mcp.server.fastmcp import FastMCP
 from mcp.shared.memory import create_connected_server_and_client_session as conectar
 
+from app.conhecimento.busca import Buscador, BuscadorLocal
+from app.conhecimento.corpus import Corpus, carregar_corpus
 from app.mcp_cartoes.servidor import (
     META_CONFIRMACAO,
     META_SESSAO,
@@ -26,6 +30,8 @@ from app.nucleo.politica import Contexto, Politica
 from app.nucleo.sessao import CofreSessao
 
 CLIENTE_DEMO = "cli-1"
+# Vigência de documentos é data de calendário no Brasil, não em UTC.
+FUSO = ZoneInfo("America/Sao_Paulo")
 
 
 @dataclass(frozen=True)
@@ -45,6 +51,12 @@ class Ambiente:
     cofre: CofreSessao
     servidor: FastMCP
     sistema: SistemaCartoes  # exposto para simular falhas nos testes
+    corpus: Corpus
+    buscador: Buscador
+    relogio: Relogio
+
+    def hoje(self) -> date:
+        return self.relogio().astimezone(FUSO).date()
 
     def abrir_sessao_demo(self, sessao_id: str) -> str:
         """Faz o papel do gateway: cliente de demonstração, WhatsApp, nível 1."""
@@ -85,4 +97,14 @@ def criar_ambiente(relogio: Relogio = agora_utc) -> Ambiente:
     cofre = CofreSessao()
     sistema = sistema_exemplo()
     servico = ServicoCartoes(politica, sistema, registro)
-    return Ambiente(catalogo, politica, cofre, criar_servidor(servico, cofre), sistema)
+    corpus = carregar_corpus()
+    return Ambiente(
+        catalogo,
+        politica,
+        cofre,
+        criar_servidor(servico, cofre),
+        sistema,
+        corpus,
+        BuscadorLocal(corpus),
+        relogio,
+    )

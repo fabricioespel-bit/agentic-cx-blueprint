@@ -20,6 +20,9 @@ from google.adk.workflow import Workflow
 from google.genai import types
 from pydantic import BaseModel, Field
 
+from app.conhecimento.redator import montar_pedido, montar_revisao
+from app.conhecimento.resposta import Resposta, fontes, preencher
+from app.conhecimento.resposta import verificar as verificar_fundamentacao
 from app.nucleo.catalogo import Catalogo, IntencaoDesconhecida, Tipo
 from app.nucleo.politica import Resultado
 from app.orquestrador import textos
@@ -83,8 +86,13 @@ def _texto(conteudo: types.Content) -> str:
     return "".join(p.text or "" for p in conteudo.parts or []).strip()
 
 
-def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflow:
-    """Monta o grafo. ``classificador``é o LLMAgent em produção e uma função nos testes."""
+def criar_workflow(
+    ambiente: Ambiente, classificador: Any, redator: Any, revisor: Any, nome: str
+) -> Workflow:
+    """Monta o grafo. Os nós com LLM (classificador, redator, revisor) são LlmAgent em
+    produção e funções nos testes."""
+
+    trechos_por_id = {t.id: t for t in ambiente.corpus.trechos}
 
     def contexto(ctx: Context):
         return ambiente.cofre.resolver(ctx.state.get("sessao"))
@@ -132,7 +140,10 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
         if not ctx.state.get("sessao"):
             estado["sessao"] = ambiente.abrir_sessao_demo(ctx.session.id)
         rota = "retomar" if ctx.state.get("pendente") else "classificar"
-        return Event(output=_texto(node_input), route=rota, state=estado)
+        texto = _texto(node_input)
+        # O conhecimento busca pela mensagem do cliente, não pela intenção.
+        estado["pergunta"] = texto
+        return Event(output=texto, route=rota, state=estado)
 
     async def decidir(ctx: Context, node_input: dict) -> Event:
         classificacao = Classificacao.model_validate(node_input)
@@ -148,7 +159,7 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
                 output=textos.negacao(intencao.id, decisao.motivo), route="responder"
             )
         if intencao.tipo is Tipo.INFORMACAO:
-            return Event(output=textos.INFORMACAO, route="responder")
+            return Event(output=ctx.state["pergunta"], route="buscar")
         if intencao.id in PEDEM_CARTAO and not classificacao.final_cartao:
             return Event(output=intencao.id, route="escolher_cartao")
         return await prosseguir(ctx, intencao.id, classificacao.final_cartao)
@@ -185,6 +196,55 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
         evento = await prosseguir(ctx, pendente["intencao"], digitado.group(1))
         evento.actions.state_delta.setdefault("pendente", None)
         return evento
+
+    def buscar(node_input: str) -> Event:
+        trechos = ambiente.buscador.buscar(node_input, ambiente.hoje())
+        if not trechos:
+            return Event(output=textos.SEM_FONTE, route="responder")
+        consulta = {"pergunta": node_input, "trechos": [t.id for t in trechos]}
+        return Event(
+            output=montar_pedido(node_input, trechos),
+            route="redigir",
+            state={"conhecimento": consulta},
+        )
+
+    def avaliar(ctx: Context, node_input: Any):
+        """Verifica a saída de um redator contra os trechos desta consulta."""
+        consulta = ctx.state["conhecimento"]
+        trechos = [trechos_por_id[i] for i in consulta["trechos"]]
+        resposta = Resposta.model_validate(node_input or {"afirmacoes": []})
+        problemas = verificar_fundamentacao(resposta, trechos)
+        return consulta, trechos, resposta, problemas
+
+    def aprovada(consulta: dict, resposta: Resposta) -> Event:
+        citadas = [trechos_por_id[i] for i in fontes(resposta)]
+        lista = "; ".join(f"{t.documento.titulo}, {t.secao}" for t in citadas)
+        texto = preencher(resposta, ambiente.corpus.tabela)
+        return Event(
+            output=f"{texto}\n\n{textos.FONTES.format(lista=lista)}",
+            route="responder",
+            state={"conhecimento": consulta | {"fontes": fontes(resposta)}},
+        )
+
+    def verificar(ctx: Context, node_input: Any) -> Event:
+        consulta, trechos, resposta, problemas = avaliar(ctx, node_input)
+        if not problemas:
+            return aprovada(consulta, resposta)
+        return Event(
+            output=montar_revisao(consulta["pergunta"], trechos, resposta, problemas),
+            route="revisar",
+            state={"conhecimento": consulta | {"problemas": problemas}},
+        )
+
+    def verificar_revisao(ctx: Context, node_input: Any) -> Event:
+        consulta, _, resposta, problemas = avaliar(ctx, node_input)
+        if not problemas:
+            return aprovada(consulta, resposta)
+        return Event(
+            output=textos.SEM_FONTE,
+            route="responder",
+            state={"conhecimento": consulta | {"problemas_revisao": problemas}},
+        )
 
     def responder(node_input: str):
         yield _mensagem(node_input)
@@ -256,8 +316,14 @@ def criar_workflow(ambiente: Ambiente, classificador: Any, nome: str) -> Workflo
                     "responder": responder,
                     "consultar": consultar,
                     "escolher_cartao": escolher_cartao,
+                    "buscar": buscar,
                 },
             ),
+            (buscar, {"responder": responder, "redigir": redator}),
+            (redator, verificar),
+            (verificar, {"responder": responder, "revisar": revisor}),
+            (revisor, verificar_revisao),
+            (verificar_revisao, {"responder": responder}),
             (
                 retomar,
                 {"responder": responder, "consultar": consultar, "executar": executar},
