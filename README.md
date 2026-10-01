@@ -12,9 +12,15 @@ O banco é fictício (**Banco Exemplo**), e todos os dados são inventados.
 
 O **agente funciona de ponta a ponta** para cartões: bloqueio (com escolha do cartão e confirmação), consulta
 de limite e lista de cartões, com negações em texto fixo (desbloqueio só no app, fora de escopo, intenção
-desconhecida). É um grafo do ADK em que **o LLM só classifica a mensagem**; rotas, chamadas ao servidor MCP,
+desconhecida). É um grafo do ADK em que, **nas transações, o LLM só classifica a mensagem**; rotas, chamadas ao servidor MCP,
 confirmação e respostas são código. Num bloqueio de três turnos, o Gemini é chamado uma vez
 ([evidência no playground](docs/evidencias/playground-2026-09-29.md)).
+
+Também **responde dúvidas sobre cartões e tarifas** com citação da fonte. O LLM redige a partir dos trechos
+encontrados, mas **nunca escreve um número**: valores aparecem como marcadores (`{{anuidade_classico}}`), o
+código verifica a resposta (fonte recuperada, valor presente no trecho citado, nenhum número solto) e só então
+preenche os valores da tabela oficial. Sem fonte que responda, o agente recusa e oferece atendimento
+([evidência no playground, com um achado e sua correção](docs/evidencias/playground-2026-10-01.md)).
 
 Por baixo dele, o **núcleo determinístico**, testado sem LLM, decide se uma ação pode ser executada, com quais
 parâmetros e com qual autenticação.
@@ -24,15 +30,17 @@ parâmetros e com qual autenticação.
 | Catálogo de intenções | Negação por padrão; piso de invariantes que nenhuma configuração sobrescreve (toda escrita exige confirmação, irreversível exige nível 3, intenção nova entra em shadow) | `config/catalogo/`, `app/nucleo/catalogo.py` |
 | Política | Consultada pelo agente e pelo executor, e vale a do executor; checa canal, nível de autenticação e limite diário | `app/nucleo/politica.py` |
 | Confirmação amarrada | Texto fixo do catálogo, hash de sessão + intenção + parâmetros, uso único, validade curta | `app/nucleo/confirmacao.py` |
-| Registro de execuções | Idempotência (mesma confirmação executa uma vez); timeout vira consulta de estado, nunca sucesso presumido; reconciliação | `app/nucleo/execucoes.py` |
-| Servidor MCP de cartões | Protocolo MCP real (SDK 1.x); identidade e confirmação fora do schema que o LLM vê | `app/mcp_cartoes/` |
-| Agente (grafo do ADK) | LLM só no classificador, sem ferramentas; respostas que autorizam ("1234", "SIM") nunca passam pelo LLM; a escrita só é alcançável depois da confirmação | `app/agent.py`, `app/orquestrador/` |
+| Registro de execuções | Idempotência técnica (mesma confirmação executa uma vez); timeout vira consulta de estado, nunca sucesso presumido; reconciliação | `app/nucleo/execucoes.py` |
+| Servidor MCP de cartões | Protocolo MCP real (SDK 1.x); identidade e confirmação fora do schema que o LLM vê; idempotência de negócio (bloquear cartão já bloqueado é recusado, sem nova execução) | `app/mcp_cartoes/` |
+| Agente (grafo do ADK) | LLM só em nós sem ferramentas (classificador; redator e revisor no conhecimento); respostas que autorizam ("1234", "SIM") nunca passam pelo LLM; a escrita só é alcançável depois da confirmação | `app/agent.py`, `app/orquestrador/` |
+| Conhecimento | Corpus com dono e vigência, sem números no texto; busca; verificação de fundamentação; valores preenchidos pelo código; no máximo uma revisão (Gemini Pro) antes da recusa | `config/conhecimento/`, `app/conhecimento/` |
 
 **Mock, e dito assim no código:** sistema de cartões, cofre de sessão e armazenamentos ficam em memória; o
-catálogo não é assinado. **Adequações do protótipo:** confirmação por "SIM" digitado (em produção, botão do
-canal), sessão de demonstração (em produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda
-não implementado:** base de conhecimento (dúvidas de produto recebem um texto fixo), mascaramento de dados
-antes do LLM, avaliação e observabilidade. O status completo está na tabela
+catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
+protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
+produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
+(RAG Engine), mascaramento de dados antes do LLM, avaliação (incluindo a relevância das respostas) e
+observabilidade. O status completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).
 
 ## Documentação
@@ -55,12 +63,15 @@ Os testes do núcleo cobrem, entre outros: intenção fora do catálogo negada, 
 confirmação com parâmetros trocados, expirada ou reutilizada negada, nível de autenticação insuficiente,
 canal não permitido, limite diário, mesma confirmação executando uma única vez e timeout seguido de consulta
 de estado. Os testes do servidor MCP usam um cliente MCP real, conectado em memória. Os testes do agente
-rodam conversas completas pelo grafo com um classificador falso, sem LLM.
+rodam conversas completas pelo grafo com classificador e redatores falsos, sem LLM. Os de conhecimento
+cobrem a validação do corpus (número fora de marcador, chave fora da tabela, vigência), a calibração da
+busca e cada regra da verificação (fonte fora da busca, valor de outro trecho, número solto).
 
 ## Como conversar com o agente
 
 Requer, além do uv, o [agents-cli](https://pypi.org/project/google-agents-cli/) e um projeto do Google Cloud
-com Vertex AI (o classificador chama o Gemini; cada mensagem nova custa uma fração de centavo).
+com Vertex AI (o classificador e, nas dúvidas, o redator chamam o Gemini; cada mensagem custa uma fração de
+centavo).
 
 ```bash
 cp .env.example .env        # ajuste GOOGLE_CLOUD_PROJECT
@@ -68,7 +79,8 @@ agents-cli playground
 ```
 
 Roteiro: "perdi minha carteira, preciso bloquear meu cartão" → "1234" → "SIM". Depois, "quero desbloquear
-meu cartão" e "qual ação devo comprar?".
+meu cartão", "qual ação devo comprar?", "qual a anuidade do cartão Clássico?" e "o cartão Platinum dá
+cashback?" (não está na base: o agente recusa).
 
 ## Stack
 

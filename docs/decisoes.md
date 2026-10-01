@@ -75,10 +75,10 @@ Quando uma decisão mudar, atualize esta página.
   chave exata; bloqueio atrasado custa mais que um bloqueio reexecutado.
 - **Limite diário conta execuções pendentes e incertas.** → Descartado: contar só as concluídas. → Na
   dúvida, a execução pode ter acontecido.
-- **Agente como grafo (`Workflow` do ADK) com o LLM só no classificador.** O classificador tem saída
-  estruturada, temperatura 0 e nenhuma ferramenta; rotas, chamadas ao MCP e respostas são código. →
-  Descartado: `Agent` com as ferramentas do MCP. → A escrita só é alcançável pelo nó de execução, depois de
-  uma confirmação comparada por código; não há caminho do LLM até ela.
+- **Agente como grafo (`Workflow` do ADK) com o LLM em nós sem ferramentas.** O classificador e os redatores de
+  conhecimento têm saída estruturada, temperatura 0 e nenhuma ferramenta; rotas, chamadas ao MCP, verificação
+  e respostas são código. → Descartado: `Agent` com as ferramentas do MCP. → A escrita só é alcançável pelo nó
+  de execução, depois de uma confirmação comparada por código; não há caminho do LLM até ela.
 - **Conversa de vários turnos por estado da sessão.** Pendência de escolha de cartão ou de confirmação fica no
   estado; com pendência, a mensagem vai direto ao código, sem LLM. → Descartado: HITL (`RequestInput`) do
   ADK. → Funciona igual em qualquer canal de texto e não depende de suporte da interface.
@@ -96,6 +96,46 @@ Quando uma decisão mudar, atualize esta página.
   transporte em memória (em produção, Cloud Run com HTTP autenticado e estado no Firestore).
 - **Local do catálogo no protótipo.** `config/catalogo/`, fora de `app/`. → Se houver deploy no Agent Runtime,
   mover para `app/config/`, porque o pacote de deploy leva só `app/`.
+
+## Conhecimento
+
+- **Números só na tabela oficial.** Documentos citam valores por marcador (`{{chave}}`) e não têm dígitos; o
+  código preenche e formata depois da verificação. → Descartado: valores no texto dos documentos. → O LLM não
+  tem de onde copiar um número; reajuste de tarifa vale sem reeditar documento nem reindexar.
+- **Autoria e publicação em produção.** Autores escrevem em Word numa biblioteca do SharePoint, com metadados
+  (dono, vigência) e fluxo de aprovação; um pipeline próprio converte, valida com as regras de
+  `app/conhecimento/corpus.py` (metadados, vigência, marcadores, número solto), divide por seção e publica no
+  RAG Engine, devolvendo ao autor os problemas em linguagem simples. Valores vêm do sistema de produtos e
+  tarifas por ferramenta de leitura. → Descartado: conector direto da biblioteca ao RAG Engine. → O conector
+  importa sem validar; o pipeline é o ponto de controle. No protótipo, `config/conhecimento/` simula o
+  conteúdo publicado.
+- **Trecho = seção do documento.** Divisão pelos títulos `##`, com id estável (`documento#secao`); regra e
+  exceção ficam na mesma seção. → Descartado: divisão por tamanho. → A citação aponta para o que o autor
+  escreveu, e a exceção não se separa da regra.
+- **Busca atrás de uma interface; lexical local no protótipo.** `Buscador`, com `BuscadorLocal` (IDF, peso no
+  título da seção, corte mínimo e relativo ao melhor trecho) e o RAG Engine como adaptador. → Descartado: RAG
+  Engine desde o início. → Testes determinísticos e sem custo fixo. Na calibração, prefere não achar a achar
+  errado (redução por prefixo descartada: "tempo" casava com "temporário").
+- **Verificação de fundamentação em código.** Toda afirmação cita trecho recuperado nesta busca; todo marcador
+  está num trecho citado pela afirmação; nenhum número fora de marcador. → Descartado: confiar no prompt; juiz
+  LLM no caminho da resposta. → Determinística e testável. Garante procedência, não relevância, que fica para
+  a avaliação (P5).
+- **Redator e revisor como nós separados.** Redator (Flash) e, se a verificação reprova uma resposta com
+  conteúdo, revisor (Pro) com os problemas encontrados; segunda reprovação vira recusa com texto fixo. →
+  Descartado: laço de tentativas num nó só. → Sem ciclo no grafo, o limite de chamadas é estrutural (até três
+  por turno, com o classificador); o Pro entra só onde a decisão de multimodelo prevê.
+- **Recusa do redator não vai ao revisor.** Lista vazia de afirmações é recusa honesta e vira "não encontrei;
+  quer falar com um atendente?". → Descartado: tratar como falha a revisar. → No playground, o revisor
+  pressionado a corrigir respondeu fora do tema com conteúdo das fontes
+  ([evidência](evidencias/playground-2026-10-01.md)).
+- **Só nós de código entregam mensagem ao cliente.** Saídas de LLM (classificador, redator, revisor) ficam nos
+  eventos da sessão; o canal entrega apenas as mensagens dos nós de resposta, montadas por código depois da
+  verificação. → Descartado: o canal repassar tudo que o agente emite. → Texto não verificado nunca chega ao
+  cliente. No playground (ADK web), essas saídas aparecem por ser ferramenta de desenvolvimento.
+- **Instrução do redator por função.** → Descartado: instrução em texto. → O ADK aplica template de estado a
+  instruções em texto e leria `{{chave}}` como variável de sessão.
+- **Vigência pela data de São Paulo.** → Descartado: data em UTC. → Documento vigente a partir do dia 1º
+  valeria às 21h da véspera.
 
 ## Segurança e governança
 

@@ -134,10 +134,14 @@ monitoramento, correlação com a trilha de auditoria.
 | Registro de execuções e idempotência | ✅ Implementado (P2): `app/nucleo/execucoes.py`; chave = id da confirmação; em memória (mock) |
 | Servidor MCP de cartões | ✅ Implementado (P2): `app/mcp_cartoes/`, SDK MCP 1.x real sobre sistema de cartões mock com timeout simulado; sessão e confirmação pelo `_meta` |
 | Cofre de sessão | ✅ Mock (P2): `app/nucleo/sessao.py`, em memória, sem expiração |
-| Agente integrado ao núcleo (grafo do ADK) | ✅ Implementado: `app/agent.py`, `app/orquestrador/`; LLM só no classificador; fluxos de bloqueio, consulta de limite e lista de cartões; negações com texto fixo. Adequações: confirmação por "SIM" digitado (em produção, botão), sessão de demonstração (em produção, gateway), servidor MCP no mesmo processo. [Evidência no playground](evidencias/playground-2026-09-29.md) |
+| Agente integrado ao núcleo (grafo do ADK) | ✅ Implementado: `app/agent.py`, `app/orquestrador/`; LLM só em nós sem ferramentas (classificador e, no conhecimento, redator e revisor); fluxos de bloqueio, consulta de limite e lista de cartões; negações com texto fixo. Adequações: confirmação por "SIM" digitado (em produção, botão), sessão de demonstração (em produção, gateway), servidor MCP no mesmo processo. [Evidência no playground](evidencias/playground-2026-09-29.md) |
 | Idempotência de negócio (não oferecer bloqueio de cartão já bloqueado) | ✅ Implementado: recusa `cartao_ja_bloqueado` no executor (`app/mcp_cartoes/servidor.py`), pela situação no sistema mock; pré-check no agente antes da confirmação e texto fixo também para a corrida entre o pré-check e o "SIM" |
 | Transporte HTTP autenticado do MCP, anotações de leitura/escrita, outbox de eventos (D7) | 📋 Proposto |
-| Conhecimento, guardrails, avaliação, observabilidade | 📋 Proposto (P3–P6) |
+| Conhecimento com citação e valores da tabela oficial | ✅ Implementado (P3): corpus fictício com dono, versão e vigência e tabela de valores (`config/conhecimento/`); busca, redator (Flash) e revisor (Pro) sem ferramentas; verificação de fundamentação e preenchimento de valores em código (`app/conhecimento/`, `app/orquestrador/fluxo.py`). Mock: busca lexical local; tabela em arquivo (em produção, ferramenta de leitura do sistema de produtos). A verificação garante procedência, não relevância. [Evidência no playground](evidencias/playground-2026-10-01.md) |
+| Busca semântica (RAG Engine) | ⏳ Pendente (P3.6): adaptador atrás da interface `Buscador`; custo fixo, exige aprovação. Caso de comparação: "quanto custa bloquear o cartão?" (achado 2 da evidência de 1º/out) |
+| Pipeline de publicação do conhecimento (autoria em Word/SharePoint, aprovação, validação, gate de avaliação) | 📋 Proposto; as regras de validação já existem em `app/conhecimento/corpus.py` |
+| Cache semântico | 📋 Proposto |
+| Guardrails, avaliação (incluindo relevância das respostas), observabilidade | 📋 Proposto (P4–P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
 [plano-prototipo.md](plano-prototipo.md).

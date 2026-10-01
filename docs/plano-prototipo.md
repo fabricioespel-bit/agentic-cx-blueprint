@@ -12,11 +12,11 @@ Objetivo: tornar executável o núcleo da [arquitetura](arquitetura.md), começa
 
 ## Fases
 
-| Fase | Entrega | Prioridade |
+| Fase | Entrega | Situação |
 |---|---|---|
-| **P1. Base** | Corpus fictício (produtos, tarifas, políticas); catálogo de intenções em YAML com esquema e validação; ajuste de região no scaffold | Agora |
-| **P2. Núcleo determinístico** | Serviço de política + piso de invariantes; confirmação amarrada aos parâmetros (hash, uso único, validade); registro de execuções com idempotência; servidor MCP de cartões (mock) com leitura/escrita separadas e identidade pelo contexto; **testes unitários** de tudo | Agora |
-| P3. Conhecimento | RAG Engine com o corpus; citação; verificação de fundamentação; valores da tabela oficial por ferramenta | Em seguida |
+| **P1. Base** | Corpus fictício (produtos, tarifas, políticas); catálogo de intenções em YAML com esquema e validação; ajuste de região no scaffold | Feita (o corpus entrou na P3) |
+| **P2. Núcleo determinístico** | Serviço de política + piso de invariantes; confirmação amarrada aos parâmetros (hash, uso único, validade); registro de execuções com idempotência; servidor MCP de cartões (mock) com leitura/escrita separadas e identidade pelo contexto; **testes unitários** de tudo | Feita |
+| **P3. Conhecimento** | Corpus com dono e vigência; busca; citação por afirmação; verificação de fundamentação; valores da tabela oficial; RAG Engine como adaptador de busca | Feita, exceto o RAG Engine (P3.6) |
 | P4. Guardrails e auditoria | Mascaramento, Model Armor como plugin, trilha de auditoria, escalonamento com resumo | Em seguida |
 | P5. Avaliação | Golden set, red team, juiz, gate | Em seguida |
 | P6. Observabilidade e custo | Traces OpenTelemetry, custo e latência medidos por conversa | Em seguida |
