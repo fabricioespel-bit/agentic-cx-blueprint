@@ -214,6 +214,17 @@ def test_reprovada_duas_vezes_recusa_sem_texto_do_llm(vigente):
     assert "9,90" not in resposta
 
 
+def test_redator_sem_resposta_recusa_sem_chamar_o_revisor(vigente):
+    # Achado do playground (1º/out): a busca traz um trecho só vizinho do tema e o
+    # redator recusa; antes, o revisor era acionado e respondia fora do tema.
+    vigente.redacoes["redator"] = {"afirmacoes": []}
+    assert "Não encontrei essa informação" in vigente.diz(
+        "O cartão Platinum dá cashback?"
+    )
+    assert "redator" in vigente.pedidos
+    assert "revisor" not in vigente.pedidos
+
+
 def test_sem_trecho_nao_chama_o_llm(vigente):
     assert "Não encontrei essa informação" in vigente.diz("Vai chover amanhã?")
     assert vigente.pedidos == {}

@@ -230,6 +230,14 @@ def criar_workflow(
         consulta, trechos, resposta, problemas = avaliar(ctx, node_input)
         if not problemas:
             return aprovada(consulta, resposta)
+        if not resposta.afirmacoes:
+            # Recusa honesta do redator: não há o que revisar. Mandar ao revisor o
+            # pressiona a responder com o que houver nos trechos, mesmo fora do tema.
+            return Event(
+                output=textos.SEM_FONTE,
+                route="responder",
+                state={"conhecimento": consulta | {"problemas": problemas}},
+            )
         return Event(
             output=montar_revisao(consulta["pergunta"], trechos, resposta, problemas),
             route="revisar",
