@@ -1,0 +1,22 @@
+{
+  "Bloqueio e desbloqueio do cartão, Bloqueio temporário": "O bloqueio temporário impede novas compras e saques com o cartão até o desbloqueio. Pode ser pedido no app do Banco Exemplo ou pelo assistente de atendimento, que pede confirmação antes de bloquear. Compras já aprovadas e débitos automáticos continuam sendo lançados na fatura.",
+  "Bloqueio e desbloqueio do cartão, Desbloqueio": "Por segurança, o desbloqueio é feito só no app do Banco Exemplo, com biometria. O assistente de atendimento não desbloqueia cartões.",
+  "Bloqueio e desbloqueio do cartão, Perda, roubo ou furto": "Em caso de perda, roubo ou furto, o primeiro passo é bloquear o cartão, pelo app ou pelo assistente. Depois, o cliente registra a ocorrência no app, o que cancela o cartão de forma definitiva e permite pedir a segunda via sem cobrança.",
+  "Cartão Exemplo Clássico, Para quem é": "O Cartão Exemplo Clássico é o cartão de crédito de entrada do Banco Exemplo, indicado para quem quer anuidade baixa e controle pelo app.",
+  "Cartão Exemplo Clássico, Anuidade": "A anuidade é cobrada em 12 parcelas mensais de R$ 19,90, lançadas na fatura. O Cartão Exemplo Clássico não tem isenção de anuidade.",
+  "Cartão Exemplo Clássico, Benefícios": "Compras parceladas sem juros nas lojas que oferecem essa opção, cartão virtual para compras online gerado no app e aviso de cada compra no app.",
+  "Cartão Exemplo Clássico, Como pedir": "O pedido é feito no app do Banco Exemplo e passa por análise de crédito. O limite inicial é definido nessa análise e aparece no app.",
+  "Cartão Exemplo Clássico, Mudança para o Platinum": "O cliente pode pedir a mudança para o Cartão Exemplo Platinum no app. A mudança passa por nova análise de crédito.",
+  "Cartão Exemplo Platinum, Para quem é": "O Cartão Exemplo Platinum é o cartão de crédito do Banco Exemplo para quem concentra os gastos no cartão e quer benefícios de viagem.",
+  "Cartão Exemplo Platinum, Anuidade": "A anuidade do Cartão Exemplo Platinum é cobrada em 12 parcelas mensais de R$ 49,90, lançadas na fatura.",
+  "Cartão Exemplo Platinum, Isenção da anuidade": "A parcela do mês é isenta quando os gastos da fatura anterior do Cartão Exemplo Platinum chegam a R$ 3.000,00 ou mais. A isenção é calculada mês a mês: um mês abaixo desse valor não cancela a isenção dos meses seguintes.",
+  "Cartão Exemplo Platinum, Benefícios": "Seguro viagem quando a passagem é paga com o cartão, acesso a salas de embarque parceiras e atendimento com prioridade na central. As regras de cada benefício estão no app.",
+  "Cartão Exemplo Platinum, Como pedir": "O pedido é feito no app do Banco Exemplo e passa por análise de crédito. Clientes do Cartão Exemplo Clássico podem pedir a mudança pelo app, também com nova análise.",
+  "Fatura e pagamento do cartão de crédito, Vencimento da fatura": "O cliente escolhe o dia de vencimento no app do Banco Exemplo, entre as datas oferecidas. A troca de data pode ser feita no app e vale a partir da fatura seguinte.",
+  "Fatura e pagamento do cartão de crédito, Pagamento mínimo e crédito rotativo": "Quem paga menos que o total da fatura entra no crédito rotativo, com juros de 9,90% ao mês sobre o saldo restante. O rotativo vale só até a fatura seguinte: depois disso, o saldo precisa ser parcelado, nas condições mostradas no app.",
+  "Fatura e pagamento do cartão de crédito, Atraso no pagamento": "Se a fatura não for paga até o vencimento, incidem multa de 2,00% ao mês sobre o valor em atraso e juros de mora de 1,00% ao mês, além dos juros do rotativo.",
+  "Fatura e pagamento do cartão de crédito, Parcelamento da fatura": "A fatura pode ser parcelada pelo app. O número de parcelas e os juros do parcelamento dependem da análise do cliente e são mostrados no app antes de confirmar.",
+  "Tarifas de serviços dos cartões, Segunda via do cartão": "A emissão de segunda via do cartão físico custa R$ 15,00, lançada na fatura. O pedido é feito no app do Banco Exemplo. Quando a segunda via é pedida por perda, roubo ou furto registrado no app, não há cobrança.",
+  "Tarifas de serviços dos cartões, Saque na função crédito": "Cada saque na função crédito tem tarifa de R$ 19,90, lançada na fatura. Além da tarifa, incidem encargos sobre o valor sacado, informados no app antes de confirmar o saque.",
+  "Tarifas de serviços dos cartões, Serviços sem tarifa": "Não são cobrados: bloqueio e desbloqueio do cartão, emissão de cartão virtual, consulta de limite e de fatura pelo app ou pelo assistente."
+}

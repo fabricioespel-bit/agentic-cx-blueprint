@@ -1,5 +1,6 @@
 """Métricas de código da avaliação (tests/eval/metricas.py). Sem LLM."""
 
+import json
 import runpy
 from pathlib import Path
 
@@ -102,3 +103,42 @@ def test_chamadas_llm_conta_so_os_nos_com_modelo():
     autores = ("classificador", "redator", "revisor", "agentic_cx_blueprint")
     resultado = M["chamadas_llm"](caso(RESPOSTA, autores))
     assert resultado == {"score": 3.0, "explanation": "classificador, redator, revisor"}
+
+
+# Juiz (tests/eval/juiz.py): só as partes sem LLM.
+J = runpy.run_path(str(Path(__file__).parents[1] / "eval" / "juiz.py"))
+G = runpy.run_path(str(Path(__file__).parents[1] / "eval" / "gerar_corpus_juiz.py"))
+
+
+def test_corpus_do_juiz_atualizado():
+    # Se falhar: uv run python tests/eval/gerar_corpus_juiz.py
+    arquivo = Path(__file__).parents[1] / "eval" / "corpus_juiz.json"
+    assert json.loads(arquivo.read_text(encoding="utf-8")) == G["trechos_preenchidos"]()
+
+
+def test_juiz_le_as_fontes_do_rodape():
+    resposta = textos.FONTES.format(
+        lista="Cartão Exemplo Clássico, Anuidade; Tarifas de serviços dos cartões, "
+        "Segunda via do cartão"
+    )
+    assert J["fontes_citadas"]("Texto.\n\n" + resposta) == [
+        "Cartão Exemplo Clássico, Anuidade",
+        "Tarifas de serviços dos cartões, Segunda via do cartão",
+    ]
+
+
+def test_juiz_nao_julga_texto_fixo():
+    resultado = J["evaluate"](
+        {"prompt": "Qual ação devo comprar?", "response": textos.FORA_DE_ESCOPO}
+    )
+    assert resultado["explanation"].startswith("rotulo: nao_se_aplica")
+
+
+def test_juiz_ve_a_resposta_sem_rodape_e_o_trecho_preenchido():
+    pedido = J["montar_pedido"](
+        "Qual a anuidade?",
+        RESPOSTA,
+        {"Cartão Exemplo Clássico, Anuidade": "texto do trecho"},
+    )
+    assert "Fontes consultadas" not in pedido
+    assert "[Cartão Exemplo Clássico, Anuidade]\ntexto do trecho" in pedido
