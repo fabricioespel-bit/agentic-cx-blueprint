@@ -24,5 +24,7 @@ jobs:
         run: |
           uv run --with ruff ruff check app/nucleo app/mcp_cartoes app/orquestrador app/conhecimento app/agent.py tests/unit
           uv run --with ruff ruff format --check app/nucleo app/mcp_cartoes app/orquestrador app/conhecimento app/agent.py tests/unit
+          uv run --with ruff ruff check app/nucleo app/mcp_cartoes app/orquestrador app/conhecimento app/agent.py tests/unit tests/eval
+          uv run --with ruff ruff format --check app/nucleo app/mcp_cartoes app/orquestrador app/conhecimento app/agent.py tests/unit tests/eval
       - name: Testes unitários
         run: uv run pytest tests/unit -q

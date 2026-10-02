@@ -1,13 +1,20 @@
+# Métricas da avaliação (P5). Rode a partir da raiz do projeto: cada métrica carrega a
+# função correspondente de tests/eval/metricas.py.
 metrics_to_run:
-  - custom_response_quality
+  - comportamento
+  - conteudo
+  - chamadas_llm
 
 custom_metrics:
-  # Default: local LLM-as-judge (see response_quality.py). Runs in-process via
-  # google-genai on Agent Platform (ADC) or Google AI Studio (GEMINI_API_KEY).
-  - name: custom_response_quality
-    custom_function_file: response_quality.py
-  - name: agent_turn_count
+  - name: comportamento
     custom_function: |
-      def evaluate(instance):
-          turns = (instance.get("agent_data") or {}).get("turns", [])
-          return {'score': len(turns)}
+      import runpy
+      evaluate = runpy.run_path("tests/eval/metricas.py")["comportamento"]
+  - name: conteudo
+    custom_function: |
+      import runpy
+      evaluate = runpy.run_path("tests/eval/metricas.py")["conteudo"]
+  - name: chamadas_llm
+    custom_function: |
+      import runpy
+      evaluate = runpy.run_path("tests/eval/metricas.py")["chamadas_llm"]
