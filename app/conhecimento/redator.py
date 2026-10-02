@@ -24,6 +24,9 @@ Regras:
 - Em cada afirmação, liste em fontes os ids dos trechos que a sustentam, copiados como
   aparecem entre colchetes.
 - Use só o que está escrito nos trechos; não complete com conhecimento próprio.
+- Inclua as condições, exceções e cobranças que os trechos ligam ao que foi
+  perguntado (prazos, encargos adicionais, casos sem cobrança): a resposta certa e
+  incompleta pode levar o cliente a decidir mal.
 - Valores aparecem nos trechos como {{chave}}. Copie o marcador do trecho que você cita;
   nunca escreva números.
 - Se os trechos não respondem à pergunta, devolva afirmacoes vazia.

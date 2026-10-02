@@ -81,6 +81,8 @@ def formatar(valor: Valor) -> str:
         case TipoValor.REAIS:
             return f"R$ {_brasileiro(valor.valor)}"
         case TipoValor.PERCENTUAL:
+            return f"{_brasileiro(valor.valor)}%"
+        case TipoValor.PERCENTUAL_MENSAL:
             return f"{_brasileiro(valor.valor)}% ao mês"
         case TipoValor.INTEIRO:
             return str(int(valor.valor))

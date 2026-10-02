@@ -38,7 +38,8 @@ SECAO = re.compile(r"^## +(.+?)\s*$", flags=re.MULTILINE)
 
 class TipoValor(StrEnum):
     REAIS = "reais"
-    PERCENTUAL = "percentual"
+    PERCENTUAL = "percentual"  # cobrado uma vez (ex.: multa)
+    PERCENTUAL_MENSAL = "percentual_mensal"  # taxa ao mês (ex.: juros)
     INTEIRO = "inteiro"
 
 

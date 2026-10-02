@@ -162,7 +162,7 @@
         "nao_deve_conter": [
           "2,00% ao mês"
         ],
-        "nota": "A multa é cobrada uma vez, não ao mês. Falha conhecida: a tabela tem um só tipo de percentual e o código acrescenta 'ao mês' a todos."
+        "nota": "A multa é cobrada uma vez, não ao mês. Falhou na referência de 2/out ('2,00% ao mês'): a tabela tinha um só tipo de percentual. Corrigido com percentual e percentual_mensal."
       }
     },
     {

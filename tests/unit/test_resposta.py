@@ -109,7 +109,8 @@ def test_problema_aponta_a_afirmacao():
     [
         ("reais", "19.90", "R$ 19,90"),
         ("reais", "1234567.5", "R$ 1.234.567,50"),
-        ("percentual", "9.9", "9,90% ao mês"),
+        ("percentual", "2", "2,00%"),
+        ("percentual_mensal", "9.9", "9,90% ao mês"),
         ("inteiro", "12", "12"),
     ],
 )

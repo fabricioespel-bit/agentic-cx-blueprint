@@ -9,7 +9,8 @@
 # aprovação), lidos por ferramenta de leitura; ninguém edita YAML. Mudança de valor
 # vale sem reindexar documentos.
 #
-# tipo: reais (valor em texto, duas casas), percentual (ao mês) ou inteiro.
+# tipo: reais (valor em texto, duas casas), percentual (cobrado uma vez),
+# percentual_mensal (ao mês) ou inteiro.
 
 versao: "2026.09"
 vigente_desde: 2026-09-01
@@ -42,7 +43,7 @@ valores:
     valor: "19.90"
   juros_rotativo:
     descricao: Juros do crédito rotativo
-    tipo: percentual
+    tipo: percentual_mensal
     valor: "9.90"
   multa_atraso:
     descricao: Multa sobre o valor em atraso
@@ -50,5 +51,5 @@ valores:
     valor: "2.00"
   juros_mora:
     descricao: Juros de mora
-    tipo: percentual
+    tipo: percentual_mensal
     valor: "1.00"
