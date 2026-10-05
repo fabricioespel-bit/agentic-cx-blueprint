@@ -1,6 +1,7 @@
 # agentic-cx-blueprint
 
 [![testes](https://github.com/fabricioespel-bit/agentic-cx-blueprint/actions/workflows/testes.yml/badge.svg)](https://github.com/fabricioespel-bit/agentic-cx-blueprint/actions/workflows/testes.yml)
+[![avaliacao](https://github.com/fabricioespel-bit/agentic-cx-blueprint/actions/workflows/avaliacao.yml/badge.svg)](https://github.com/fabricioespel-bit/agentic-cx-blueprint/actions/workflows/avaliacao.yml)
 
 Blueprint de um **assistente agêntico para atendimento bancário** (WhatsApp e app): responde com base no
 conhecimento oficial do banco e executa transações simples, com uma tese central:
@@ -39,7 +40,7 @@ parâmetros e com qual autenticação.
 catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
 protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
 produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
-(RAG Engine), mascaramento de dados antes do LLM, avaliação contínua no CI e observabilidade. O status
+(RAG Engine), mascaramento de dados antes do LLM, gate de qualidade no CI e observabilidade. O status
 completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).
 
@@ -72,7 +73,8 @@ busca e cada regra da verificação (fonte fora da busca, valor de outro trecho,
 Os testes acima usam LLM falso. A avaliação roda o agente de verdade sobre 23 perguntas (resposta, recusa,
 lacuna conhecida, manipulação e roteamento) e mede comportamento, conteúdo, custo e fidelidade, esta com um
 juiz LLM calibrado contra rótulos humanos. Encontrou três defeitos, corrigidos e medidos em três rodadas
-([evidência](docs/evidencias/avaliacao-2026-10-05.md)).
+([evidência](docs/evidencias/avaliacao-2026-10-05.md)). No CI, roda a cada mudança no agente, com acesso ao
+Google Cloud por federação de identidade, sem chave guardada.
 
 ```bash
 uv run uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080      # em outro terminal

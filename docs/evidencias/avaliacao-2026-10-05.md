@@ -108,6 +108,15 @@ Rodada 3: ...juros de 9,90% ao mês sobre o saldo restante. O crédito rotativo 
 - **Lacunas da busca lexical** (abertas): "quanto custa bloquear o cartão?", "quanto pago por ano?", "posso
   parcelar a fatura?". O corpus tem as respostas; são os casos de comparação para a busca semântica (RAG Engine).
 
+## No CI
+
+A avaliação roda no GitHub Actions (`.github/workflows/avaliacao.yml`) com acesso ao Google Cloud por federação
+de identidade: nenhuma chave guardada; o provedor só aceita tokens do id deste repositório e do branch `main`; a
+conta de serviço só chama a Vertex AI. Primeira execução (5/out, execução 37319952533): todos os passos verdes,
+cerca de 2 minutos, e as mesmas notas da rodada 3 local (`fidelidade` 1,00; 20/23 em `comportamento` e
+`conteudo`, com as três lacunas; 1,65 chamada por pergunta). Um ambiente limpo, com dependências do lock e o
+agents-cli fixado, reproduziu as métricas, embora a redação mude entre execuções.
+
 ## Limites
 
 - **Amostra pequena:** 11 respostas com redação por rodada, a maioria `ok`. A confiança no juiz vem dos casos
@@ -118,7 +127,7 @@ Rodada 3: ...juros de 9,90% ao mês sobre o saldo restante. O crédito rotativo 
   esse viés.
 - **Um turno só:** fluxos de vários turnos (escolha do cartão, confirmação) estão cobertos pelos testes
   unitários, não por esta avaliação.
-- **Execução local:** a avaliação no CI (federação de identidade com o Google Cloud) está proposta.
+- **Sem gate:** a avaliação no CI informa, mas não bloqueia o merge.
 
 ## Como reproduzir
 

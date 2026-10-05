@@ -173,6 +173,15 @@ Quando uma decisão mudar, atualize esta página.
   Rebaixar o critério esconde o problema; são os casos de comparação para a busca semântica.
 - **Avaliação contra o servidor já rodando.** `eval run --url`. → Descartado: deixar o agents-cli subir o
   servidor. → Ele espera 30 s, e o agente leva cerca de 80 s para subir nesta máquina.
+- **Avaliação no CI com federação de identidade.** O GitHub Actions troca um token OIDC de curta duração por
+  credencial temporária de uma conta de serviço que só chama a Vertex AI; o provedor aceita apenas o id deste
+  repositório e o branch `main`, e a permissão na conta de serviço repete a restrição pelo id. → Descartado:
+  chave JSON da conta de serviço como segredo; condição pelo nome do repositório. → Sem segredo para vazar; o id
+  não muda se o repositório for apagado e recriado com o mesmo nome. Papel `roles/aiplatform.user` (pronto,
+  mais amplo que o necessário; papel customizado só com predição fica como melhoria). Gatilhos só no `main` e
+  manuais, nunca em PR; uma execução por vez; orçamento mensal que avisa (não bloqueia).
+- **Avaliação informativa antes de virar gate.** → Descartado: bloquear o merge desde a primeira execução. →
+  Notas de LLM oscilam; o gate vem depois de execuções estáveis e de casos com problema no conjunto.
 - **Custo.** Conversas de conhecimento custam várias vezes mais que transações; alavancas: cache semântico,
   cache de contexto, modelo menor no classificador, limite de turnos, avaliações em lote.
 - **Roadmap.** Promoção por intenção (fundação → shadow → assistido → autônomo em conhecimento → autônomo em

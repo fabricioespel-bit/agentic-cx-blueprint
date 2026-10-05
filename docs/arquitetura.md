@@ -142,7 +142,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Pipeline de publicação do conhecimento (autoria em Word/SharePoint, aprovação, validação, gate de avaliação) | 📋 Proposto; as regras de validação já existem em `app/conhecimento/corpus.py` |
 | Cache semântico | 📋 Proposto |
 | Avaliação offline com modelo real | ✅ Implementado (P5): 23 casos em cinco grupos (`tests/eval/datasets/`), métricas de código e juiz LLM de fidelidade calibrado contra rótulos humanos (`tests/eval/`); três rodadas com antes e depois. [Evidência](evidencias/avaliacao-2026-10-05.md) |
-| Avaliação contínua no CI (federação de identidade com o Google Cloud) e gate | 📋 Proposto |
+| Avaliação contínua no CI | ✅ Implementado: `.github/workflows/avaliacao.yml`, no `main` (quando agente, corpus ou avaliação mudam) e sob demanda; acesso ao Google Cloud por federação de identidade, sem chave, restrito ao id do repositório e ao `main`; resumo na página da execução; alerta de orçamento. Informativa, sem gate |
+| Gate de qualidade no CI | 📋 Proposto: depende de casos `infiel` e `nao_responde` no conjunto e de execuções estáveis |
 | Red team ampliado, casos de vários turnos, comparação de temperatura | 📋 Proposto |
 | Guardrails, observabilidade | 📋 Proposto (P4, P6) |
 
