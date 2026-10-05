@@ -28,10 +28,14 @@ Compare a resposta com os trechos citados como fonte e escolha um rótulo:
 - ok: responde à pergunta e só afirma o que os trechos dizem.
 - incompleto: responde, mas omite dos trechos citados informação que muda a decisão
   do cliente sobre a pergunta (um encargo, uma exceção, uma condição).
+- excesso: responde, mas acrescenta uma situação diferente da perguntada (por
+  exemplo, perguntou do pagamento mínimo e a resposta trata também do atraso).
+  Detalhes da mesma situação, que o cliente precisaria saber, não são excesso.
 - nao_responde: não responde ao que foi perguntado.
 - infiel: afirma algo que os trechos não dizem, mesmo que pareça plausível.
 
-Com mais de um problema, use o mais grave: infiel > nao_responde > incompleto > ok.
+Com mais de um problema, use o mais grave:
+infiel > nao_responde > incompleto > excesso > ok.
 Julgue só pelos trechos; não use conhecimento próprio sobre bancos. Os valores
 (R$, %, números) vêm da tabela oficial e aparecem iguais nos trechos.
 Explique em uma ou duas frases, citando a parte da resposta que motivou o rótulo."""
@@ -40,8 +44,14 @@ Explique em uma ou duas frases, citando a parte da resposta que motivou o rótul
 class Rotulo(StrEnum):
     OK = "ok"
     INCOMPLETO = "incompleto"
+    EXCESSO = "excesso"
     NAO_RESPONDE = "nao_responde"
     INFIEL = "infiel"
+
+
+# Nota pela gravidade: excesso é o problema mais leve (a resposta não engana, mas não é
+# a ideal); os demais zeram.
+NOTAS = {Rotulo.OK: 1.0, Rotulo.EXCESSO: 0.5}
 
 
 class Veredito(BaseModel):
@@ -107,6 +117,6 @@ def evaluate(instance: dict) -> dict:
     if veredito is None:
         return {"score": 0.0, "explanation": f"rotulo: erro; {saida.text or ''}"}
     return {
-        "score": 1.0 if veredito.rotulo is Rotulo.OK else 0.0,
+        "score": NOTAS.get(veredito.rotulo, 0.0),
         "explanation": f"rotulo: {veredito.rotulo.value}; {veredito.explicacao}",
     }

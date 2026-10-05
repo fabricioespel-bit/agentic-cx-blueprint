@@ -1,0 +1,13 @@
+{
+  "instrucoes": [
+    "Conferência humana da rodada 3 (artifacts/traces/traces_20261005_100742.json, 5/out/2026) no caso que motivou a rodada; mesmas categorias de rotulos_humanos.json."
+  ],
+  "casos": [
+    {
+      "id": "juros_rotativo",
+      "rotulo_humano": "ok",
+      "rotulo_juiz": "ok",
+      "comentario": "Mantém a condição (o rotativo vale só até a fatura seguinte) e não trata mais do atraso."
+    }
+  ]
+}

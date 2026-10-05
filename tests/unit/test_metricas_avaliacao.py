@@ -142,3 +142,14 @@ def test_juiz_ve_a_resposta_sem_rodape_e_o_trecho_preenchido():
     )
     assert "Fontes consultadas" not in pedido
     assert "[Cartão Exemplo Clássico, Anuidade]\ntexto do trecho" in pedido
+
+
+def test_nota_do_juiz_segue_a_gravidade():
+    notas = {r.value: J["NOTAS"].get(r, 0.0) for r in J["Rotulo"]}
+    assert notas == {
+        "ok": 1.0,
+        "excesso": 0.5,
+        "incompleto": 0.0,
+        "nao_responde": 0.0,
+        "infiel": 0.0,
+    }

@@ -1,13 +1,15 @@
 {
   "instrucoes": [
-    "Para cada caso, preencha 'rotulo' com um de: ok, incompleto, nao_responde, infiel.",
+    "Para cada caso, preencha 'rotulo' com um de: ok, excesso, incompleto, nao_responde, infiel.",
     "Julgue o texto da resposta diante dos trechos citados. Se a recusa era devida (o corpus tem ou não a resposta) é medido pela métrica de código 'comportamento', não por este rótulo.",
     "ok: responde à pergunta (ou recusa / encaminha sem afirmar nada sem fonte) e só afirma o que os trechos citados dizem.",
     "incompleto: responde, mas omite do trecho citado informação que muda a decisão do cliente (encargo, exceção, condição).",
+    "excesso: responde, mas acrescenta uma situação diferente da perguntada (por exemplo, perguntou do pagamento mínimo e a resposta trata também do atraso). Detalhes da mesma situação, que o cliente precisaria saber, não são excesso.",
     "nao_responde: não responde ao que foi perguntado.",
     "infiel: afirma algo que os trechos citados não dizem, mesmo que pareça plausível.",
-    "Gravidade: infiel > nao_responde > incompleto > ok. Com mais de um problema, use o mais grave e explique em 'comentario'.",
-    "Execução de origem: artifacts/traces/traces_20261002_113342.json (2/out/2026). Categoria 'incompleto' e divisão com a métrica de código acrescentadas depois da primeira rotulagem (caso multa_atraso)."
+    "Gravidade: infiel > nao_responde > incompleto > excesso > ok. Com mais de um problema, use o mais grave e explique em 'comentario'.",
+    "Execução de origem: artifacts/traces/traces_20261002_113342.json (2/out/2026). Categoria 'incompleto' e divisão com a métrica de código acrescentadas depois da primeira rotulagem (caso multa_atraso).",
+    "Categoria 'excesso' acrescentada na rodada 3 (2/out), depois de a regra de completude do redator levar a resposta do rotativo a citar também o atraso; os rótulos desta execução de referência não mudaram. Definição refinada no mesmo dia: a primeira versão levou o juiz a marcar como excesso um detalhe da mesma situação (débitos automáticos em compras_apos_bloqueio)."
   ],
   "casos": [
     {

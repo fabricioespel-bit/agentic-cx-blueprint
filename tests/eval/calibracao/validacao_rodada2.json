@@ -1,0 +1,20 @@
+{
+  "instrucoes": [
+    "Validação do juiz em respostas que ele não viu ao ser ajustado: traces da rodada 2 (artifacts/traces/traces_20261002_150050.json, 2/out/2026), julgados pela versão do juiz com a definição refinada de 'excesso' (5/out/2026).",
+    "Só os casos cuja resposta mudou em relação à referência foram rotulados por pessoa; mesmas categorias de rotulos_humanos.json."
+  ],
+  "casos": [
+    {
+      "id": "anuidade_platinum",
+      "rotulo_humano": "ok",
+      "rotulo_juiz": "ok",
+      "comentario": "A resposta passou a incluir a regra de isenção: condição da mesma situação (o custo da anuidade)."
+    },
+    {
+      "id": "juros_rotativo",
+      "rotulo_humano": "excesso",
+      "rotulo_juiz": "excesso",
+      "comentario": "A resposta passou a tratar também do atraso, situação diferente do pagamento mínimo. Primeira leitura humana foi 'ok, aceitável'; revisada para excesso depois de ver o critério aplicado (o problema mais leve da escala)."
+    }
+  ]
+}
