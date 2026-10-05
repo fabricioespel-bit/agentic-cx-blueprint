@@ -141,7 +141,10 @@ monitoramento, correlação com a trilha de auditoria.
 | Busca semântica (RAG Engine) | ⏳ Pendente (P3.6): adaptador atrás da interface `Buscador`; custo fixo, exige aprovação. Caso de comparação: "quanto custa bloquear o cartão?" (achado 2 da evidência de 1º/out) |
 | Pipeline de publicação do conhecimento (autoria em Word/SharePoint, aprovação, validação, gate de avaliação) | 📋 Proposto; as regras de validação já existem em `app/conhecimento/corpus.py` |
 | Cache semântico | 📋 Proposto |
-| Guardrails, avaliação (incluindo relevância das respostas), observabilidade | 📋 Proposto (P4–P6) |
+| Avaliação offline com modelo real | ✅ Implementado (P5): 23 casos em cinco grupos (`tests/eval/datasets/`), métricas de código e juiz LLM de fidelidade calibrado contra rótulos humanos (`tests/eval/`); três rodadas com antes e depois. [Evidência](evidencias/avaliacao-2026-10-05.md) |
+| Avaliação contínua no CI (federação de identidade com o Google Cloud) e gate | 📋 Proposto |
+| Red team ampliado, casos de vários turnos, comparação de temperatura | 📋 Proposto |
+| Guardrails, observabilidade | 📋 Proposto (P4, P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
 [plano-prototipo.md](plano-prototipo.md).

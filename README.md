@@ -39,8 +39,8 @@ parâmetros e com qual autenticação.
 catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
 protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
 produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
-(RAG Engine), mascaramento de dados antes do LLM, avaliação (incluindo a relevância das respostas) e
-observabilidade. O status completo está na tabela
+(RAG Engine), mascaramento de dados antes do LLM, avaliação contínua no CI e observabilidade. O status
+completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).
 
 ## Documentação
@@ -66,6 +66,19 @@ de estado. Os testes do servidor MCP usam um cliente MCP real, conectado em mem�
 rodam conversas completas pelo grafo com classificador e redatores falsos, sem LLM. Os de conhecimento
 cobrem a validação do corpus (número fora de marcador, chave fora da tabela, vigência), a calibração da
 busca e cada regra da verificação (fonte fora da busca, valor de outro trecho, número solto).
+
+## Como avaliar com o modelo real
+
+Os testes acima usam LLM falso. A avaliação roda o agente de verdade sobre 23 perguntas (resposta, recusa,
+lacuna conhecida, manipulação e roteamento) e mede comportamento, conteúdo, custo e fidelidade, esta com um
+juiz LLM calibrado contra rótulos humanos. Encontrou três defeitos, corrigidos e medidos em três rodadas
+([evidência](docs/evidencias/avaliacao-2026-10-05.md)).
+
+```bash
+uv run uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080      # em outro terminal
+agents-cli eval run --url http://127.0.0.1:18080 --app-name app \
+  --dataset tests/eval/datasets/conhecimento.json --config tests/eval/eval_config.yaml
+```
 
 ## Como conversar com o agente
 

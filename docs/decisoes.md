@@ -155,6 +155,24 @@ Quando uma decisão mudar, atualize esta página.
 
 - **Avaliação.** Quatro níveis; métricas por componente; red team com zero escrita ou vazamento; juiz calibrado
   contra humanos; recontato em 24–72h como métrica de resolução.
+- **Métricas de código onde o resultado é verificável; juiz LLM só para interpretar texto.** Comportamento,
+  valores, fontes e chamadas ao modelo são conferidos por código contra o esperado de cada caso; o juiz julga
+  apenas o texto diante dos trechos citados. → Descartado: juiz para tudo; métricas prontas do serviço. → O que
+  é verificável não depende de outro LLM; a rota `/app-info` do ADK não descreve um `Workflow`, e as métricas
+  prontas perdem contexto.
+- **Recusa indevida medida pela métrica de código, não pelo juiz.** → Descartado: juiz com o corpus inteiro. → O
+  dataset sabe o que o corpus contém; o juiz, que vê só os trechos citados, não tem como saber.
+- **Juiz em modelo diferente do redator, calibrado contra rótulos humanos.** `gemini-2.5-pro`, temperatura 0;
+  concordância medida antes de usar, divergências adjudicadas e registradas, validação em respostas que não
+  serviram ao ajuste. → Descartado: confiar no juiz sem calibração. → Uma métrica não validada pode premiar o
+  erro; na calibração, ele acertou os dois casos `incompleto` com o motivo certo.
+- **Escala de gravidade com nota parcial.** `ok` 1, `excesso` 0,5, `incompleto`, `nao_responde` e `infiel` 0;
+  `excesso` é outra situação além da perguntada, não detalhe da mesma. → Descartado: aprovado ou reprovado. →
+  "Aceitável, mas não ideal" não deve pesar como erro; a primeira definição de excesso gerou falso positivo.
+- **Lacunas conhecidas mantidas no conjunto, falhando.** → Descartado: tirar os casos ou aceitar a recusa. →
+  Rebaixar o critério esconde o problema; são os casos de comparação para a busca semântica.
+- **Avaliação contra o servidor já rodando.** `eval run --url`. → Descartado: deixar o agents-cli subir o
+  servidor. → Ele espera 30 s, e o agente leva cerca de 80 s para subir nesta máquina.
 - **Custo.** Conversas de conhecimento custam várias vezes mais que transações; alavancas: cache semântico,
   cache de contexto, modelo menor no classificador, limite de turnos, avaliações em lote.
 - **Roadmap.** Promoção por intenção (fundação → shadow → assistido → autônomo em conhecimento → autônomo em
