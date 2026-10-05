@@ -10,8 +10,10 @@ Mock: em produção o catálogo é publicado assinado e somente leitura; aqui é
 arquivo YAML local, sem verificação de assinatura.
 """
 
+import re
 from enum import StrEnum
 from pathlib import Path
+from string import Formatter
 from typing import Self
 
 import yaml
@@ -69,6 +71,9 @@ class Intencao(BaseModel):
     limite_diario: int | None = Field(default=None, ge=1)
     ferramenta: str | None = None
     texto_confirmacao: str | None = None
+    # Formato de cada parâmetro (expressão regular, casada por inteiro). Todo campo
+    # interpolado no texto de confirmação precisa estar aqui.
+    parametros: dict[str, str] = Field(default_factory=dict)
 
     @property
     def escrita(self) -> bool:
@@ -96,7 +101,27 @@ class Intencao(BaseModel):
             raise ValueError(f"invariante: '{self.id}' sem ferramenta associada")
         if not self.escrita and self.limite_diario is not None:
             raise ValueError(f"'{self.id}': limite diário só se aplica a transações")
+        campos = {
+            c for _, c, _, _ in Formatter().parse(self.texto_confirmacao or "") if c
+        }
+        if campos - self.parametros.keys():
+            raise ValueError(
+                f"invariante: '{self.id}' interpola no texto de confirmação campos sem "
+                f"formato declarado: {', '.join(sorted(campos - self.parametros.keys()))}"
+            )
+        for nome, formato in self.parametros.items():
+            try:
+                re.compile(formato)
+            except re.error as erro:
+                raise ValueError(f"'{self.id}': formato inválido para {nome}") from erro
         return self
+
+    def parametros_validos(self, parametros: dict) -> bool:
+        """Mesmos nomes declarados e cada valor no formato declarado."""
+        return parametros.keys() == self.parametros.keys() and all(
+            isinstance(valor, str) and re.fullmatch(self.parametros[nome], valor)
+            for nome, valor in parametros.items()
+        )
 
 
 class Catalogo(BaseModel):

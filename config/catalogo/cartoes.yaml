@@ -36,6 +36,8 @@ intencoes:
     canais: [whatsapp, app]
     fase: autonomo
     ferramenta: consultar_limite
+    parametros:
+      final_cartao: '\d{4}'
 
   # Risco assimétrico (D3): o bloqueio temporário é reversível e o atraso causa mais dano
   # que um bloqueio indevido, por isso exige só nível 1 mais confirmação.
@@ -51,6 +53,8 @@ intencoes:
     fase: assistido
     ferramenta: bloquear_cartao
     texto_confirmacao: "Bloquear temporariamente o cartão final {final_cartao}? O desbloqueio é feito só no app."
+    parametros:
+      final_cartao: '\d{4}'
 
   # O desbloqueio é o sentido arriscado: nível 3 (biometria) e só no app.
   - id: desbloquear_cartao
@@ -65,6 +69,8 @@ intencoes:
     fase: shadow
     ferramenta: desbloquear_cartao
     texto_confirmacao: "Desbloquear o cartão final {final_cartao}?"
+    parametros:
+      final_cartao: '\d{4}'
 
   - id: fora_de_escopo
     descricao: "Pedidos que o assistente não atende (ex.: recomendação de investimento); recusa educada."

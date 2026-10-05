@@ -29,6 +29,9 @@ from app.nucleo.politica import Resultado
 from app.orquestrador import textos
 from app.orquestrador.ambiente import Ambiente
 
+# Final de cartão vindo do classificador só vale com exatamente 4 dígitos (a política
+# confere de novo pelo formato declarado no catálogo).
+FINAL_CARTAO = re.compile(r"\d{4}")
 # intenções cujo parâmetro é o final do cartão
 PEDEM_CARTAO = {"consultar_limite", "bloquear_cartao_temporario"}
 # Intenção com pré-check de situação do cartão (idempotência de negócio)
@@ -167,9 +170,12 @@ def criar_workflow(
             )
         if intencao.tipo is Tipo.INFORMACAO:
             return Event(output=ctx.state["pergunta"], route="buscar")
-        if intencao.id in PEDEM_CARTAO and not classificacao.final_cartao:
+        final = classificacao.final_cartao
+        if final is not None and not FINAL_CARTAO.fullmatch(final):
+            final = None  # saída do LLM fora do formato: pergunta qual cartão
+        if intencao.id in PEDEM_CARTAO and not final:
             return Event(output=intencao.id, route="escolher_cartao")
-        return await prosseguir(ctx, intencao.id, classificacao.final_cartao)
+        return await prosseguir(ctx, intencao.id, final)
 
     async def escolher_cartao(ctx: Context, node_input: str):
         resposta = await ambiente.chamar("listar_cartoes", {}, ctx.state["sessao"])

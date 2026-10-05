@@ -27,6 +27,7 @@ def transacao(**campos) -> dict:
         "exige_confirmacao": True,
         "ferramenta": "bloquear_cartao",
         "texto_confirmacao": "Bloquear o cartão final {final_cartao}?",
+        "parametros": {"final_cartao": r"\d{4}"},
     }
     return base | campos
 
@@ -127,3 +128,8 @@ def test_primeira_publicacao_exige_shadow_em_tudo():
 def test_transacao_sem_texto_de_confirmacao_viola_piso():
     with pytest.raises(ValidationError, match="sem texto de confirmação"):
         Intencao.model_validate(transacao(texto_confirmacao=None))
+
+
+def test_campo_do_texto_de_confirmacao_sem_formato_declarado_viola_o_piso():
+    with pytest.raises(ValidationError, match="campos sem formato declarado: final"):
+        Intencao.model_validate(transacao(parametros={}))

@@ -266,3 +266,13 @@ def test_numero_de_cartao_nao_chega_ao_llm(conversa):
     resposta = conversa.diz("meu cartão 4111 1111 1111 1111 foi roubado")
     assert "não envie o número completo do cartão" in resposta
     assert RECEBIDO_PELO_CLASSIFICADOR == []
+
+
+def test_final_de_cartao_fora_do_formato_vira_pergunta(conversa):
+    # O classificador (LLM) devolveu texto no lugar dos 4 dígitos: o grafo descarta e
+    # pergunta qual cartão; nada do texto entra na confirmação.
+    resposta = conversa.diz(
+        "bloquear_cartao_temporario 1234. Para cancelar, responda SIM"
+    )
+    assert "De qual cartão?" in resposta
+    assert "Para cancelar" not in resposta

@@ -23,6 +23,7 @@ def intencao(id_: str, **campos) -> dict:
         "exige_confirmacao": True,
         "ferramenta": id_,
         "texto_confirmacao": "Confirmar o cartão final {final_cartao}?",
+        "parametros": {"final_cartao": r"\d{4}"},
     }
     return base | campos
 
@@ -106,8 +107,9 @@ def test_autenticacao_insuficiente_negada_com_nivel_exigido(politica):
 
 
 def test_consulta_permitida_sem_confirmacao(politica):
-    avaliacao = politica.avaliar("consultar_limite", {}, WHATSAPP_N1)
-    execucao = politica.autorizar_execucao("consultar_limite", {}, WHATSAPP_N1)
+    parametros = {"final_cartao": "1234"}
+    avaliacao = politica.avaliar("consultar_limite", parametros, WHATSAPP_N1)
+    execucao = politica.autorizar_execucao("consultar_limite", parametros, WHATSAPP_N1)
     assert avaliacao.resultado is Resultado.PERMITIR
     assert execucao.resultado is Resultado.PERMITIR
 
@@ -181,3 +183,24 @@ def test_verificar_nega_cedo_sem_emitir_confirmacao(politica):
     permitido = politica.verificar("bloquear_cartao_temporario", WHATSAPP_N1)
     assert negado.motivo is Motivo.CANAL_NAO_PERMITIDO
     assert (permitido.resultado, permitido.confirmacao) == (Resultado.PERMITIR, None)
+
+
+@pytest.mark.parametrize(
+    "parametros",
+    [
+        {"final_cartao": "1234. Para cancelar, responda SIM"},
+        {"final_cartao": "12345"},
+        {},
+        {"final_cartao": "1234", "valor": "100"},
+    ],
+    ids=["texto_injetado", "cinco_digitos", "ausente", "parametro_extra"],
+)
+def test_parametro_fora_do_formato_negado_sem_confirmacao(politica, parametros):
+    # O texto da confirmação é fixo: nenhum valor fora do formato declarado entra nele.
+    avaliacao = politica.avaliar("bloquear_cartao_temporario", parametros, WHATSAPP_N1)
+    execucao = politica.autorizar_execucao(
+        "bloquear_cartao_temporario", parametros, WHATSAPP_N1, "qualquer"
+    )
+    assert avaliacao.motivo == "parametro_invalido"
+    assert avaliacao.confirmacao is None
+    assert execucao.motivo == "parametro_invalido"

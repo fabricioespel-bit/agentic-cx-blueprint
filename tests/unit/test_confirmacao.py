@@ -22,6 +22,7 @@ BLOQUEIO = Intencao.model_validate(
         "exige_confirmacao": True,
         "ferramenta": "bloquear_cartao",
         "texto_confirmacao": "Bloquear o cartão final {final_cartao}?",
+        "parametros": {"final_cartao": r"\d{4}"},
     }
 )
 PARAMS = {"final_cartao": "1234"}

@@ -42,6 +42,7 @@ class Motivo(StrEnum):
     CONFIRMACAO_REUTILIZADA = "confirmacao_reutilizada"
     CONFIRMACAO_EXPIRADA = "confirmacao_expirada"
     PARAMETROS_DIVERGENTES = "parametros_divergentes"
+    PARAMETRO_INVALIDO = "parametro_invalido"
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,8 @@ class Politica:
         intencao = self._verificar(intencao_id, contexto)
         if isinstance(intencao, Decisao):
             return intencao
+        if not intencao.parametros_validos(dict(parametros)):
+            return _negar(Motivo.PARAMETRO_INVALIDO)
         if not intencao.escrita:
             return Decisao(Resultado.PERMITIR)
         confirmacao = self._confirmacoes.emitir(
@@ -109,6 +112,8 @@ class Politica:
         intencao = self._verificar(intencao_id, contexto)
         if isinstance(intencao, Decisao):
             return intencao
+        if not intencao.parametros_validos(dict(parametros)):
+            return _negar(Motivo.PARAMETRO_INVALIDO)
         if not intencao.escrita:
             return Decisao(Resultado.PERMITIR)
         if confirmacao_id is None:
