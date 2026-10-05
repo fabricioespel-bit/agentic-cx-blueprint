@@ -145,7 +145,9 @@ monitoramento, correlação com a trilha de auditoria.
 | Avaliação contínua no CI | ✅ Implementado: `.github/workflows/avaliacao.yml`, no `main` (quando agente, corpus ou avaliação mudam) e sob demanda; acesso ao Google Cloud por federação de identidade, sem chave, restrito ao id do repositório e ao `main`; resumo na página da execução; alerta de orçamento. Informativa, sem gate |
 | Gate de qualidade no CI | 📋 Proposto: depende de casos `infiel` e `nao_responde` no conjunto e de execuções estáveis |
 | Red team ampliado, casos de vários turnos, comparação de temperatura | 📋 Proposto |
-| Guardrails, observabilidade | 📋 Proposto (P4, P6) |
+| Mascaramento de dados pessoais antes do LLM | ✅ Implementado (P4.1): plugin do ADK (`app/guardrails/`) com Sensitive Data Protection no endpoint regional `southamerica-east1` e regras locais com dígito verificador; CPF, cartão, e-mail, telefone, nome e endereço viram marcadores; número completo de cartão vira aviso fixo, sem LLM. Medido no CI (grupo privacidade, 4/4). [Evidência](evidencias/mascaramento-2026-10-05.md) |
+| Trilha de auditoria, escalonamento com resumo, Model Armor | 📋 Proposto (P4.2–P4.4) |
+| Observabilidade | 📋 Proposto (P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
 [plano-prototipo.md](plano-prototipo.md).

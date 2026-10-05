@@ -137,6 +137,26 @@ Quando uma decisão mudar, atualize esta página.
 - **Vigência pela data de São Paulo.** → Descartado: data em UTC. → Documento vigente a partir do dia 1º
   valeria às 21h da véspera.
 
+## Guardrails
+
+- **Mascaramento com o Sensitive Data Protection regional e regras locais juntos.** O SDP é chamado no
+  endpoint de `southamerica-east1` (o texto real não sai da região); regras com dígito verificador para CPF
+  (cálculo do CPF) e cartão (Luhn) rodam sempre. → Descartado: só regras locais; só o SDP. → O SDP detecta nome
+  e endereço, que regras não pegam; as regras são a segunda camada para os dados mais graves e a contingência.
+- **Se o SDP falhar, seguem as regras locais.** A falha é registrada sem o texto. → Descartado: recusar a
+  mensagem. → CPF, cartão, e-mail e telefone continuam cobertos, e o cliente não fica sem atendimento quando
+  o serviço oscila.
+- **Limite de confiança "possível".** → Descartado: "provável" ou acima. → Na sondagem, cartão sem espaços e
+  nome completo só apareceram nesse nível; nenhum falso positivo em "final 1234", valores e datas. Primeiro
+  nome isolado não é detectado (limitação aceita: identifica pouco).
+- **Mascaramento como plugin do ADK, alterando a própria mensagem.** `on_user_message_callback` roda antes da
+  sessão e do grafo, no papel do gateway. → Descartado: devolver uma mensagem nova. → O runner guarda a
+  mensagem original como entrada do grafo antes do callback: a sessão ficaria mascarada e o classificador
+  receberia o texto original (provado em teste). Um teste também garante que o método sobrescreve o gancho.
+- **Número completo de cartão vira aviso fixo, sem LLM.** O marcador `[NUMERO_DE_CARTAO]` faz a entrada do
+  grafo responder e cancelar qualquer pendência. → Descartado: classificar a mensagem mascarada. → Fora do
+  escopo PCI; nada a interpretar, e nenhuma chamada ao modelo.
+
 ## Segurança e governança
 
 - **K1 Catálogo.** Configuração versionada por área, com segregação de funções, publicada assinada, somente
