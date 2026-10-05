@@ -153,3 +153,41 @@ def test_nota_do_juiz_segue_a_gravidade():
         "nao_responde": 0.0,
         "infiel": 0.0,
     }
+
+
+def test_resumo_agrupa_e_lista_os_casos_com_problema():
+    resumo = runpy.run_path(str(Path(__file__).parents[1] / "eval" / "resumo.py"))
+    casos = [
+        {"eval_case_id": "a", "esperado": {"grupo": "responde"}},
+        {"eval_case_id": "b", "esperado": {"grupo": "responde"}},
+    ]
+    ok = {"score": 1.0, "explanation": "ok"}
+    resultados = {
+        "eval_case_results": [
+            {
+                "eval_case_index": 0,
+                "response_candidate_results": [
+                    {"metric_results": {"comportamento": ok, "conteudo": ok}}
+                ],
+            },
+            {
+                "eval_case_index": 1,
+                "response_candidate_results": [
+                    {
+                        "metric_results": {
+                            "comportamento": ok,
+                            "conteudo": ok,
+                            "fidelidade": {
+                                "score": 0.5,
+                                "explanation": "rotulo: excesso",
+                            },
+                        }
+                    }
+                ],
+            },
+        ]
+    }
+    texto = resumo["resumo"](resultados, casos)
+    assert "| responde | 2/2 |" in texto
+    assert "- `b` (responde): fidelidade: rotulo: excesso" in texto
+    assert "`a`" not in texto

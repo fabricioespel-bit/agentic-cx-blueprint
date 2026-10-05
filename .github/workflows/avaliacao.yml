@@ -1,0 +1,75 @@
+# Avaliação com o modelo real (P5): roda o agente sobre o conjunto de casos e publica as
+# métricas no resumo da execução. Informativa por enquanto: não bloqueia nada.
+#
+# Acesso ao Google Cloud por federação de identidade, sem chave guardada: o provedor só
+# aceita tokens deste repositório (pelo id) e do branch main, e a conta de serviço só
+# chama a Vertex AI. Os valores vêm de variáveis do repositório (não são segredos).
+name: avaliacao
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "config/**"
+      - "tests/eval/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/avaliacao.yml"
+
+permissions:
+  contents: read
+  id-token: write # token OIDC para a federação de identidade
+
+concurrency:
+  group: avaliacao
+  cancel-in-progress: false
+
+jobs:
+  avaliar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOOGLE_GENAI_USE_VERTEXAI: "true"
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      GOOGLE_CLOUD_LOCATION: global
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - name: Autenticar no Google Cloud (federação de identidade, sem chave)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - name: Instalar dependências (lock congelado) e agents-cli
+        run: |
+          uv sync --locked
+          uv tool install google-agents-cli==1.7.0
+      - name: Subir o agente e esperar ficar pronto
+        run: |
+          uv run uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080 > servidor.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:18080/list-apps > /dev/null && exit 0
+            sleep 5
+          done
+          tail -50 servidor.log
+          exit 1
+      - name: Avaliar os casos
+        run: >
+          agents-cli eval run --url http://127.0.0.1:18080 --app-name app
+          --dataset tests/eval/datasets/conhecimento.json
+          --config tests/eval/eval_config.yaml
+      - name: Resumo da avaliação
+        if: always()
+        run: uv run python tests/eval/resumo.py >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar os resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: avaliacao
+          path: artifacts/grade_results/
+          retention-days: 30
