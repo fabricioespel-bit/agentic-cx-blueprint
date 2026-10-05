@@ -44,6 +44,10 @@ CARTAO_NAO_ENCONTRADO = (
     "Não encontrei esse cartão entre os seus. Se quiser, é só fazer o pedido de novo."
 )
 CONFIRMACAO = "{texto} Responda SIM para confirmar."
+NUMERO_DE_CARTAO = (
+    "Por segurança, não envie o número completo do cartão: ele foi descartado. Para "
+    "falar de um cartão, use só os 4 últimos dígitos."
+)
 CANCELADO = "Tudo bem, não fiz nenhuma alteração."
 
 CARTOES = "Seus cartões: {lista}."

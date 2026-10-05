@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from app.conhecimento.redator import montar_pedido, montar_revisao
 from app.conhecimento.resposta import Resposta, fontes, preencher
 from app.conhecimento.resposta import verificar as verificar_fundamentacao
+from app.guardrails.mascaramento import CARTAO
 from app.nucleo.catalogo import Catalogo, IntencaoDesconhecida, Tipo
 from app.nucleo.politica import Resultado
 from app.orquestrador import textos
@@ -139,8 +140,14 @@ def criar_workflow(
         estado = {}
         if not ctx.state.get("sessao"):
             estado["sessao"] = ambiente.abrir_sessao_demo(ctx.session.id)
-        rota = "retomar" if ctx.state.get("pendente") else "classificar"
         texto = _texto(node_input)
+        if CARTAO in texto:
+            # Número completo de cartão (já trocado pelo plugin): não segue para o LLM.
+            estado["pendente"] = None
+            return Event(
+                output=textos.NUMERO_DE_CARTAO, route="responder", state=estado
+            )
+        rota = "retomar" if ctx.state.get("pendente") else "classificar"
         # O conhecimento busca pela mensagem do cliente, não pela intenção.
         estado["pergunta"] = texto
         return Event(output=texto, route=rota, state=estado)
@@ -316,7 +323,14 @@ def criar_workflow(
         name=nome,
         edges=[
             ("START", entrada),
-            (entrada, {"classificar": classificador, "retomar": retomar}),
+            (
+                entrada,
+                {
+                    "classificar": classificador,
+                    "retomar": retomar,
+                    "responder": responder,
+                },
+            ),
             (classificador, decidir),
             (
                 decidir,

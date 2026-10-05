@@ -9,15 +9,20 @@ from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
+from app.guardrails.mascaramento import DetectorLocal, Mascarador
+from app.guardrails.plugin import PluginMascaramento
 from app.mcp_cartoes.sistema import Falha
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_workflow
 
 # O classificador falso lê a mensagem como "intencao" ou "intencao final".
 # Ex.: "bloquear_cartao_temporario 1234". Mensagem terminada em "?" é dúvida.
+# Guarda o que recebeu, para os testes de mascaramento.
+RECEBIDO_PELO_CLASSIFICADOR: list[str] = []
 
 
 def classificador(node_input: str) -> Event:
+    RECEBIDO_PELO_CLASSIFICADOR.append(node_input)
     if node_input.endswith("?"):
         return Event(output={"intencao": "duvida_produtos_tarifas"})
     intencao, _, final = node_input.partition(" ")
@@ -41,7 +46,11 @@ class Conversa:
         agente = criar_workflow(
             self.ambiente, classificador, redator, revisor, nome="teste"
         )
-        self.runner = InMemoryRunner(app=App(name="teste", root_agent=agente))
+        # Mascaramento só com as regras locais: os testes não usam Google Cloud.
+        plugin = PluginMascaramento(Mascarador([DetectorLocal()]))
+        self.runner = InMemoryRunner(
+            app=App(name="teste", root_agent=agente, plugins=[plugin])
+        )
         self.sessao = asyncio.run(
             self.runner.session_service.create_session(app_name="teste", user_id="u")
         )
@@ -234,3 +243,26 @@ def test_documento_ainda_nao_vigente_nao_e_usado(conversa):
     # Relógio em 1º/jan/2026: nenhum documento do corpus vale ainda.
     assert "Não encontrei essa informação" in conversa.diz(PERGUNTA)
     assert conversa.pedidos == {}
+
+
+# Mascaramento (P4.1): o plugin roda antes da sessão e do grafo.
+
+
+def test_classificador_e_sessao_recebem_o_texto_mascarado(conversa):
+    RECEBIDO_PELO_CLASSIFICADOR.clear()
+    conversa.diz("bloquear_cartao_temporario meu CPF é 529.982.247-25")
+    assert RECEBIDO_PELO_CLASSIFICADOR == ["bloquear_cartao_temporario meu CPF é [CPF]"]
+    sessao = asyncio.run(
+        conversa.runner.session_service.get_session(
+            app_name="teste", user_id="u", session_id=conversa.sessao.id
+        )
+    )
+    assert "529.982" not in str(sessao.events)
+    assert "529.982" not in str(sessao.state)
+
+
+def test_numero_de_cartao_nao_chega_ao_llm(conversa):
+    RECEBIDO_PELO_CLASSIFICADOR.clear()
+    resposta = conversa.diz("meu cartão 4111 1111 1111 1111 foi roubado")
+    assert "não envie o número completo do cartão" in resposta
+    assert RECEBIDO_PELO_CLASSIFICADOR == []

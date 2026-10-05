@@ -1,10 +1,14 @@
 """Agente de atendimento do Banco Exemplo: grafo do ADK ligado ao núcleo determinístico."""
 
+import os
+
 from google.adk.apps import App
 from google.adk.models import Gemini
 from google.genai import types
 
 from app.conhecimento.redator import criar_redator
+from app.guardrails.mascaramento import DetectorLocal, DetectorSDP, Mascarador
+from app.guardrails.plugin import PluginMascaramento
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
 
@@ -31,7 +35,14 @@ root_agent = criar_workflow(
     nome="agentic_cx_blueprint",
 )
 
+# SDP regional e regras locais juntos; se o SDP falhar, as regras seguem sozinhas. Sem
+# projeto configurado (testes unitários), só as regras locais.
+projeto = os.environ.get("GOOGLE_CLOUD_PROJECT")
+detectores = [DetectorSDP(projeto), DetectorLocal()] if projeto else [DetectorLocal()]
+mascarador = Mascarador(detectores)
+
 app = App(
     root_agent=root_agent,
     name="app",
+    plugins=[PluginMascaramento(mascarador)],
 )
