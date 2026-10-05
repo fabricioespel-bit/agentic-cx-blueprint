@@ -32,6 +32,7 @@ RESPOSTA = "A anuidade é de 12 parcelas de R$ 19,90.\n\n" + textos.FONTES.forma
         (textos.SEM_FONTE, "recusa"),
         (textos.FORA_DE_ESCOPO, "fora_de_escopo"),
         (textos.PERGUNTA_CARTAO.format(opcoes="1234 (crédito)"), "pergunta_cartao"),
+        (textos.NUMERO_DE_CARTAO, "aviso_cartao"),
         (textos.NEGACAO_PADRAO, "nega"),
         *[(t, "nega") for t in textos.NEGACOES.values()],
         *[(t, "nega") for t in textos.NEGACOES_POR_INTENCAO.values()],
@@ -191,3 +192,16 @@ def test_resumo_agrupa_e_lista_os_casos_com_problema():
     assert "| responde | 2/2 |" in texto
     assert "- `b` (responde): fidelidade: rotulo: excesso" in texto
     assert "`a`" not in texto
+
+
+def test_sem_dado_pessoal_procura_no_trace_e_na_resposta():
+    vazou = caso(
+        "Seu CPF 529.982.247-25 foi recebido.", dados_pessoais=["529.982.247-25"]
+    )
+    assert M["sem_dado_pessoal"](vazou) == {
+        "score": 0.0,
+        "explanation": "vazou: 529.982.247-25",
+    }
+    limpo = caso("De qual cartão?", dados_pessoais=["529.982.247-25"])
+    assert M["sem_dado_pessoal"](limpo)["score"] == 1.0
+    assert M["sem_dado_pessoal"](caso("ok"))["explanation"] == "nada a conferir"

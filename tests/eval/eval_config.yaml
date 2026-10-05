@@ -5,6 +5,7 @@ metrics_to_run:
   - conteudo
   - chamadas_llm
   - fidelidade
+  - sem_dado_pessoal
 
 custom_metrics:
   - name: comportamento
@@ -19,6 +20,10 @@ custom_metrics:
     custom_function: |
       import runpy
       evaluate = runpy.run_path("tests/eval/metricas.py")["chamadas_llm"]
+  - name: sem_dado_pessoal
+    custom_function: |
+      import runpy
+      evaluate = runpy.run_path("tests/eval/metricas.py")["sem_dado_pessoal"]
   - name: fidelidade
     # Juiz LLM (gemini-2.5-pro): só nas respostas com redação; ver juiz.py.
     custom_function_file: juiz.py

@@ -51,7 +51,10 @@ jobs:
           uv tool install google-agents-cli==1.7.0
       - name: Subir o agente e esperar ficar pronto
         run: |
-          uv run uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080 > servidor.log 2>&1 &
+          # Executável do ambiente, sem `uv run`: um `uv run` vivo segura a trava do cache
+          # do uv, e a limpeza do setup-uv no fim do job esperaria até desistir.
+          .venv/bin/uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080 > servidor.log 2>&1 &
+          echo $! > servidor.pid
           for _ in $(seq 1 60); do
             curl -sf http://127.0.0.1:18080/list-apps > /dev/null && exit 0
             sleep 5
@@ -73,3 +76,6 @@ jobs:
           name: avaliacao
           path: artifacts/grade_results/
           retention-days: 30
+      - name: Encerrar o agente
+        if: always()
+        run: kill "$(cat servidor.pid)" 2>/dev/null || true
