@@ -3,6 +3,8 @@
 Em produção, estes textos são configuração versionada (componente H da arquitetura).
 """
 
+import re
+
 from app.nucleo.politica import Motivo
 
 NEGACAO_PADRAO = (
@@ -67,6 +69,22 @@ CONFIRMACAO_INVALIDA = (
 FALHA = "Não consegui concluir agora e nada foi alterado. Se quiser, te encaminho para um atendente."
 
 
+# Escalonamento (P4.3). A oferta está em NEGACAO_PADRAO, LIMITE_DIARIO, SEM_FONTE e FALHA.
+OFERTA_ATENDENTE = "te encaminho para um atendente"
+ENCAMINHADO = (
+    "Certo, vou te encaminhar para um atendente. Ele vai receber o resumo do que "
+    "conversamos, sem você precisar repetir. Protocolo {protocolo}."
+)
+ENCAMINHADO_FALHAS = (
+    "Não estou conseguindo resolver por aqui. Vou te encaminhar para um atendente, que "
+    "vai receber o resumo do que conversamos. Protocolo {protocolo}."
+)
+JA_ENCAMINHADO = (
+    "Seu atendimento já foi encaminhado (protocolo {protocolo}). Um atendente vai "
+    "continuar a conversa por aqui."
+)
+
+
 def negacao(intencao_id: str, motivo: str | None) -> str:
     """Retorna texto fixo de negação por intenção ou motivo."""
     if intencao_id in NEGACOES_POR_INTENCAO:
@@ -77,3 +95,45 @@ def negacao(intencao_id: str, motivo: str | None) -> str:
 def reais(valor: int) -> str:
     """Formata inteiro como BRL com ponto no lugar de vírgula."""
     return f"{valor:,}".replace(",", ".")
+
+
+def _modelo(texto: str) -> re.Pattern:
+    """Texto fixo com campos ({final}, {texto}...) vira expressão regular."""
+    partes = re.split(r"\{[^}]*\}", texto)
+    return re.compile(".*".join(re.escape(p) for p in partes), flags=re.DOTALL)
+
+
+RODAPE_FONTES = FONTES.split("{")[0]
+# Desfecho de um turno, reconhecido pelo texto fixo que o cliente recebeu.
+DESFECHOS = [
+    (_modelo(NUMERO_DE_CARTAO), "aviso_cartao"),
+    (_modelo(SEM_FONTE), "sem_fonte"),
+    (_modelo(FORA_DE_ESCOPO), "fora_de_escopo"),
+    (_modelo(PERGUNTA_CARTAO), "pergunta_cartao"),
+    (_modelo(CONFIRMACAO), "confirmacao_pedida"),
+    (_modelo(CANCELADO), "cancelado"),
+    (_modelo(BLOQUEADO), "executado"),
+    (_modelo(EM_VERIFICACAO), "execucao_incerta"),
+    (_modelo(JA_BLOQUEADO), "ja_bloqueado"),
+    (_modelo(CONFIRMACAO_INVALIDA), "confirmacao_invalida"),
+    (_modelo(CARTAO_NAO_ENCONTRADO), "cartao_nao_encontrado"),
+    (_modelo(LIMITE), "consulta"),
+    (_modelo(CARTOES), "consulta"),
+    (_modelo(FALHA), "falha"),
+    (_modelo(ENCAMINHADO), "encaminhado"),
+    (_modelo(ENCAMINHADO_FALHAS), "encaminhado"),
+    (_modelo(JA_ENCAMINHADO), "ja_encaminhado"),
+    *[
+        (_modelo(t), "negado")
+        for t in (NEGACAO_PADRAO, *NEGACOES.values(), *NEGACOES_POR_INTENCAO.values())
+    ],
+]
+
+
+def desfecho(resposta: str) -> str:
+    if RODAPE_FONTES in resposta:
+        return "respondido"
+    for modelo, nome in DESFECHOS:
+        if modelo.fullmatch(resposta):
+            return nome
+    return "outro"

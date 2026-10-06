@@ -33,6 +33,8 @@ RESPOSTA = "A anuidade é de 12 parcelas de R$ 19,90.\n\n" + textos.FONTES.forma
         (textos.FORA_DE_ESCOPO, "fora_de_escopo"),
         (textos.PERGUNTA_CARTAO.format(opcoes="1234 (crédito)"), "pergunta_cartao"),
         (textos.NUMERO_DE_CARTAO, "aviso_cartao"),
+        (textos.ENCAMINHADO.format(protocolo="ATD-1"), "encaminhado"),
+        (textos.ENCAMINHADO_FALHAS.format(protocolo="ATD-1"), "encaminhado"),
         (textos.NEGACAO_PADRAO, "nega"),
         *[(t, "nega") for t in textos.NEGACOES.values()],
         *[(t, "nega") for t in textos.NEGACOES_POR_INTENCAO.values()],

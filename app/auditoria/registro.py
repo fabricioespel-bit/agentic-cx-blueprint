@@ -12,58 +12,14 @@ não precisam se coordenar.
 
 import hashlib
 import json
-import re
 from datetime import datetime
 from typing import Any
 
-from app.orquestrador import textos
+from app.orquestrador.textos import desfecho
 
 VERSAO = 1
 GENESE = "0" * 64  # elo do primeiro registro de cada sessão
 NOS_COM_LLM = ("classificador", "redator", "revisor")
-RODAPE_FONTES = textos.FONTES.split("{")[0]
-
-
-def _modelo(texto: str) -> re.Pattern:
-    """Texto fixo com campos ({final}, {texto}...) vira expressão regular."""
-    partes = re.split(r"\{[^}]*\}", texto)
-    return re.compile(".*".join(re.escape(p) for p in partes), flags=re.DOTALL)
-
-
-# Desfecho reconhecido pelo texto fixo que o cliente recebeu (app/orquestrador/textos.py).
-DESFECHOS = [
-    (_modelo(textos.NUMERO_DE_CARTAO), "aviso_cartao"),
-    (_modelo(textos.SEM_FONTE), "sem_fonte"),
-    (_modelo(textos.FORA_DE_ESCOPO), "fora_de_escopo"),
-    (_modelo(textos.PERGUNTA_CARTAO), "pergunta_cartao"),
-    (_modelo(textos.CONFIRMACAO), "confirmacao_pedida"),
-    (_modelo(textos.CANCELADO), "cancelado"),
-    (_modelo(textos.BLOQUEADO), "executado"),
-    (_modelo(textos.EM_VERIFICACAO), "execucao_incerta"),
-    (_modelo(textos.JA_BLOQUEADO), "ja_bloqueado"),
-    (_modelo(textos.CONFIRMACAO_INVALIDA), "confirmacao_invalida"),
-    (_modelo(textos.CARTAO_NAO_ENCONTRADO), "cartao_nao_encontrado"),
-    (_modelo(textos.LIMITE), "consulta"),
-    (_modelo(textos.CARTOES), "consulta"),
-    (_modelo(textos.FALHA), "falha"),
-    *[
-        (_modelo(t), "negado")
-        for t in (
-            textos.NEGACAO_PADRAO,
-            *textos.NEGACOES.values(),
-            *textos.NEGACOES_POR_INTENCAO.values(),
-        )
-    ],
-]
-
-
-def desfecho(resposta: str) -> str:
-    if RODAPE_FONTES in resposta:
-        return "respondido"
-    for modelo, nome in DESFECHOS:
-        if modelo.fullmatch(resposta):
-            return nome
-    return "outro"
 
 
 def calcular_hash(registro: dict[str, Any]) -> str:
@@ -100,6 +56,7 @@ def montar_registro(
         "motivo": turno.get("motivo"),
         "final_descartado": bool(turno.get("final_descartado")),
         "execucao": turno.get("execucao"),
+        "encaminhamento": turno.get("encaminhamento"),
         "conhecimento": conhecimento,
         "chamadas_llm": chamadas_llm,
         "hash_anterior": hash_anterior,
@@ -125,6 +82,7 @@ def verificar_cadeia(registros: list[dict[str, Any]]) -> str | None:
 def metadados(registro: dict[str, Any], objeto: str) -> dict[str, Any]:
     """Linha do BigQuery: sem a mensagem nem a resposta (minimização)."""
     execucao = registro.get("execucao") or {}
+    encaminhamento = registro.get("encaminhamento") or {}
     conhecimento = registro.get("conhecimento") or {}
     return {
         "versao": registro["versao"],
@@ -137,7 +95,8 @@ def metadados(registro: dict[str, Any], objeto: str) -> dict[str, Any]:
         "motivo": registro["motivo"],
         "final_descartado": registro["final_descartado"],
         "execucao_estado": execucao.get("estado"),
-        "protocolo": execucao.get("protocolo"),
+        # Protocolo da execução ou do encaminhamento ao atendimento humano.
+        "protocolo": execucao.get("protocolo") or encaminhamento.get("protocolo"),
         "fontes": conhecimento.get("fontes") or [],
         "problemas_verificacao": len(conhecimento.get("problemas") or [])
         + len(conhecimento.get("problemas_revisao") or []),

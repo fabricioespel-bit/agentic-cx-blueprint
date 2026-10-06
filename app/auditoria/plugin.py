@@ -19,6 +19,7 @@ from app.auditoria.destinos import Destino, DestinoArquivo
 from app.auditoria.registro import GENESE, NOS_COM_LLM, montar_registro
 from app.nucleo.confirmacao import Relogio, agora_utc
 from app.nucleo.sessao import CofreSessao
+from app.orquestrador.atendimento import HISTORICO_MAX
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +78,19 @@ class PluginAuditoria(BasePlugin):
             chamadas_llm=[e.author for e in com_texto if e.author in NOS_COM_LLM],
             hash_anterior=anterior["hash"],
         )
-        # O elo da próxima vez fica no estado da sessão, persistido com ela.
+        # O elo da próxima vez fica no estado da sessão, persistido com ela, e um item
+        # curto vai para o histórico, de onde sai o resumo do escalonamento (P4.3).
         elo = {"sequencia": registro["sequencia"], "hash": registro["hash"]}
+        item = {k: registro[k] for k in ("intencao", "desfecho", "motivo")}
+        historico = (sessao.state.get("historico") or [])[-(HISTORICO_MAX - 1) :]
         await ic.session_service.append_event(
             sessao,
             Event(
                 author="auditoria",
                 invocation_id=ic.invocation_id,
-                actions=EventActions(state_delta={"auditoria": elo}),
+                actions=EventActions(
+                    state_delta={"auditoria": elo, "historico": [*historico, item]}
+                ),
             ),
         )
         await asyncio.to_thread(self._diario.gravar, registro)

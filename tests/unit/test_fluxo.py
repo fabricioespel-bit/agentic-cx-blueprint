@@ -22,13 +22,16 @@ from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_workflow
 
 # O classificador falso lê a mensagem como "intencao" ou "intencao final".
-# Ex.: "bloquear_cartao_temporario 1234". Mensagem terminada em "?" é dúvida.
+# Ex.: "bloquear_cartao_temporario 1234". Mensagem terminada em "?" é dúvida;
+# começando com "atendente" pede atendimento humano.
 # Guarda o que recebeu, para os testes de mascaramento.
 RECEBIDO_PELO_CLASSIFICADOR: list[str] = []
 
 
 def classificador(node_input: str) -> Event:
     RECEBIDO_PELO_CLASSIFICADOR.append(node_input)
+    if node_input.startswith("atendente"):
+        return Event(output={"intencao": "fora_de_escopo", "pede_atendente": True})
     if node_input.endswith("?"):
         return Event(output={"intencao": "duvida_produtos_tarifas"})
     intencao, _, final = node_input.partition(" ")
@@ -37,7 +40,11 @@ def classificador(node_input: str) -> Event:
 
 class Conversa:
     def __init__(self, relogio):
-        self.ambiente = criar_ambiente(relogio=relogio)
+        pasta = Path(tempfile.mkdtemp())
+        self.fila = DestinoArquivo(pasta / "fila.jsonl")
+        self.ambiente = criar_ambiente(
+            relogio=relogio, fila_atendimento=pasta / "fila.jsonl"
+        )
         # Redatores falsos: devolvem a resposta definida pelo teste e guardam o pedido
         # que receberam, para o teste conferir o que o LLM teria visto.
         self.redacoes: dict[str, dict] = {}
@@ -54,7 +61,7 @@ class Conversa:
         )
         # Mascaramento só com as regras locais e auditoria só no diário local: os
         # testes não usam Google Cloud. O envio roda no turno, para o teste ver.
-        self.diario = DestinoArquivo(Path(tempfile.mkdtemp()) / "diario.jsonl")
+        self.diario = DestinoArquivo(pasta / "diario.jsonl")
         self.destinos: list = []
         plugins = [
             PluginMascaramento(Mascarador([DetectorLocal()])),
@@ -375,3 +382,59 @@ def test_falha_no_envio_nao_derruba_a_conversa(conversa, caplog):
     assert "fora do escopo" in resposta
     assert "envio a Fora falhou" in caplog.text
     assert len(conversa.diario.ler()) == 1  # o diário guardou o registro
+
+
+# Escalonamento (P4.3): pedido explícito, aceite da oferta e falhas seguidas.
+
+
+def test_pedido_de_atendente_encaminha_com_resumo(conversa):
+    conversa.diz("bloquear_cartao_temporario 1234")
+    conversa.diz("não")
+    resposta = conversa.diz("atendente por favor")
+    assert "vou te encaminhar para um atendente" in resposta
+    [chamado] = conversa.fila.ler()
+    assert resposta.endswith(f"Protocolo {chamado['protocolo']}.")
+    assert chamado["motivo"] == "pedido_do_cliente"
+    assert "Motivo do encaminhamento: pedido do cliente." in chamado["resumo"]
+    assert "1. bloquear_cartao_temporario: confirmacao_pedida" in chamado["resumo"]
+    assert "2. bloquear_cartao_temporario: cancelado" in chamado["resumo"]
+
+
+def test_depois_de_encaminhado_o_agente_nao_responde_por_cima(conversa):
+    conversa.diz("atendente")
+    RECEBIDO_PELO_CLASSIFICADOR.clear()
+    resposta = conversa.diz("bloquear_cartao_temporario 1234")
+    assert "já foi encaminhado" in resposta
+    assert RECEBIDO_PELO_CLASSIFICADOR == []
+
+
+def test_sim_depois_da_oferta_encaminha(conversa):
+    assert "te encaminho para um atendente" in conversa.diz("transferir_pix")
+    resposta = conversa.diz("SIM")
+    assert "vou te encaminhar" in resposta
+    [chamado] = conversa.fila.ler()
+    assert chamado["motivo"] == "aceite_da_oferta"
+    assert "1. transferir_pix: negado (intencao_desconhecida)" in chamado["resumo"]
+
+
+def test_outra_resposta_depois_da_oferta_segue_o_caminho_normal(conversa):
+    conversa.diz("transferir_pix")
+    assert "fora do escopo" in conversa.diz("fora_de_escopo")
+    assert conversa.fila.ler() == []
+
+
+def test_tres_falhas_seguidas_encaminham_sem_pedido(conversa):
+    conversa.diz("transferir_pix")
+    conversa.diz("transferir_pix")
+    resposta = conversa.diz("transferir_pix")
+    assert "Não estou conseguindo resolver por aqui" in resposta
+    [chamado] = conversa.fila.ler()
+    assert chamado["motivo"] == "falhas_repetidas"
+
+
+def test_encaminhamento_fica_na_auditoria(conversa):
+    conversa.diz("atendente")
+    [registro] = conversa.diario.ler()
+    assert registro["desfecho"] == "encaminhado"
+    assert registro["motivo"] == "pedido_do_cliente"
+    assert registro["encaminhamento"]["protocolo"].startswith("ATD-")

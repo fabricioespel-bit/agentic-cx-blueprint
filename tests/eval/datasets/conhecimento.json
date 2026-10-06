@@ -581,6 +581,42 @@
           "maria.santos@exemplo.com.br"
         ]
       }
+    },
+    {
+      "eval_case_id": "pede_atendente",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Quero falar com um atendente"
+          }
+        ]
+      },
+      "esperado": {
+        "grupo": "escalonamento",
+        "comportamento": [
+          "encaminhado"
+        ],
+        "nota": "Pedido explícito: o classificador marca pede_atendente."
+      }
+    },
+    {
+      "eval_case_id": "pede_pessoa_com_intencao",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Não consigo bloquear meu cartão pelo app, me passa para uma pessoa"
+          }
+        ]
+      },
+      "esperado": {
+        "grupo": "escalonamento",
+        "comportamento": [
+          "encaminhado"
+        ],
+        "nota": "Intenção (bloqueio) e pedido de atendente na mesma mensagem: o pedido de atendente prevalece."
+      }
     }
   ]
 }

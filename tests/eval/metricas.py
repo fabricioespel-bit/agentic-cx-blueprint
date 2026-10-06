@@ -18,6 +18,10 @@ INICIOS = {
     "fora_de_escopo": ("Esse assunto está fora do escopo",),
     "pergunta_cartao": ("De qual cartão?",),
     "aviso_cartao": ("Por segurança, não envie o número completo do cartão",),
+    "encaminhado": (
+        "Certo, vou te encaminhar para um atendente",
+        "Não estou conseguindo resolver por aqui",
+    ),
     "nega": (
         "Não consigo fazer esse pedido",
         "Esse pedido só pode ser feito no app",

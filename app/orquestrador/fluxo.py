@@ -10,6 +10,7 @@ Adequações do protótipo: a confirmação é por "SIM" digitado, com correspon
 """
 
 import re
+import secrets
 from typing import Any
 
 from google.adk.agents import LlmAgent
@@ -26,7 +27,7 @@ from app.conhecimento.resposta import verificar as verificar_fundamentacao
 from app.guardrails.mascaramento import CARTAO
 from app.nucleo.catalogo import Catalogo, IntencaoDesconhecida, Tipo
 from app.nucleo.politica import Resultado
-from app.orquestrador import textos
+from app.orquestrador import atendimento, textos
 from app.orquestrador.ambiente import Ambiente
 
 # Final de cartão vindo do classificador só vale com exatamente 4 dígitos (a política
@@ -56,6 +57,11 @@ class Classificacao(BaseModel):
         default=None,
         description="Os 4 últimos dígitos do cartão, só se o cliente os informou.",
     )
+    # Escalonamento é saída transversal, não intenção: vem num campo à parte.
+    pede_atendente: bool = Field(
+        default=False,
+        description="Verdadeiro só se o cliente pede para falar com uma pessoa.",
+    )
 
 
 INSTRUCAO = """Você classifica a mensagem de um cliente do Banco Exemplo.
@@ -68,6 +74,8 @@ Regras:
 - Escolha exatamente um id da lista.
 - Se nenhuma se aplica, use fora_de_escopo.
 - Preencha final_cartao só com 4 dígitos que o cliente escreveu; senão, deixe vazio.
+- Marque pede_atendente só se o cliente pedir para falar com uma pessoa (atendente,
+  humano, alguém); a intenção continua sendo a do pedido.
 """
 
 
@@ -107,6 +115,55 @@ def criar_workflow(
         atual = estado.get("turno", ctx.state.get("turno") or {})
         estado["turno"] = {**atual, **campos}
         return estado
+
+    def encaminhar(ctx: Context, motivo: str, modelo: str, **marcas: Any) -> Event:
+        """Encaminha ao atendimento humano com resumo feito por código, sem LLM."""
+        protocolo = f"ATD-{secrets.token_hex(4).upper()}"
+        cliente = contexto(ctx)
+        historico = ctx.state.get("historico") or []
+        ultima = ctx.state.get("pergunta")
+        ambiente.atendimento.gravar(
+            {
+                "protocolo": protocolo,
+                "momento": ambiente.relogio().isoformat(),
+                "sessao": ctx.session.id,
+                "cliente_ref": cliente.cliente_ref,
+                "motivo": motivo,
+                "historico": historico,
+                "resumo": atendimento.resumo(
+                    protocolo=protocolo,
+                    cliente_ref=cliente.cliente_ref,
+                    canal=cliente.canal.value,
+                    nivel=cliente.nivel_autenticacao,
+                    motivo=motivo,
+                    historico=historico,
+                    ultima_mensagem=ultima,
+                ),
+            }
+        )
+        estado = marcar(
+            ctx,
+            {"atendimento": {"protocolo": protocolo}, "pendente": None},
+            **marcas,
+            motivo=motivo,
+            encaminhamento={"protocolo": protocolo},
+        )
+        return Event(
+            output=modelo.format(protocolo=protocolo), route="responder", state=estado
+        )
+
+    def saida(ctx: Context, texto: str):
+        """Toda resposta ao cliente passa aqui: falhas seguidas encaminham; oferta de
+        atendente vira pendência, aceita só por "sim" na próxima mensagem."""
+        historico = ctx.state.get("historico") or []
+        if atendimento.falhas_repetidas(historico, textos.desfecho(texto)):
+            evento = encaminhar(ctx, "falhas_repetidas", textos.ENCAMINHADO_FALHAS)
+            yield _mensagem(evento.output)
+            yield Event(state=evento.actions.state_delta)
+            return
+        yield _mensagem(texto)
+        if textos.OFERTA_ATENDENTE in texto:
+            yield Event(state={"pendente": {"tipo": "oferta_atendente"}})
 
     def contexto(ctx: Context):
         return ambiente.cofre.resolver(ctx.state.get("sessao"))
@@ -156,6 +213,13 @@ def criar_workflow(
         if not ctx.state.get("sessao"):
             estado["sessao"] = ambiente.abrir_sessao_demo(ctx.session.id)
         texto = _texto(node_input)
+        if encaminhado := ctx.state.get("atendimento"):
+            # Já com um atendente: o agente não responde por cima dele.
+            return Event(
+                output=textos.JA_ENCAMINHADO.format(protocolo=encaminhado["protocolo"]),
+                route="responder",
+                state=estado,
+            )
         if CARTAO in texto:
             # Número completo de cartão (já trocado pelo plugin): não segue para o LLM.
             estado["pendente"] = None
@@ -170,6 +234,8 @@ def criar_workflow(
     async def decidir(ctx: Context, node_input: dict) -> Event:
         classificacao = Classificacao.model_validate(node_input)
         marcas: dict[str, Any] = {"intencao": classificacao.intencao}
+        if classificacao.pede_atendente:
+            return encaminhar(ctx, "pedido_do_cliente", textos.ENCAMINHADO, **marcas)
         try:
             intencao = ambiente.catalogo.obter(classificacao.intencao)
         except IntencaoDesconhecida:
@@ -204,7 +270,8 @@ def criar_workflow(
     async def escolher_cartao(ctx: Context, node_input: str):
         resposta = await ambiente.chamar("listar_cartoes", {}, ctx.state["sessao"])
         if not resposta.ok:
-            yield _mensagem(textos.FALHA)
+            for evento in saida(ctx, textos.FALHA):
+                yield evento
             return
         opcoes = " ou ".join(
             f"{c['final']} ({TIPOS.get(c['tipo'], c['tipo'])})"
@@ -215,6 +282,13 @@ def criar_workflow(
 
     async def retomar(ctx: Context, node_input: str) -> Event:
         pendente = ctx.state["pendente"]
+        if pendente["tipo"] == "oferta_atendente":
+            if node_input.strip().lower() in CONFIRMA:
+                return encaminhar(ctx, "aceite_da_oferta", textos.ENCAMINHADO)
+            # Qualquer outra resposta: a oferta cai e a mensagem segue o caminho normal.
+            return Event(
+                output=node_input, route="classificar", state={"pendente": None}
+            )
         limpar = marcar(ctx, {"pendente": None}, intencao=pendente["intencao"])
         if pendente["tipo"] == "confirmacao":
             if node_input.strip().lower() in CONFIRMA:
@@ -294,8 +368,8 @@ def criar_workflow(
             state={"conhecimento": consulta | {"problemas_revisao": problemas}},
         )
 
-    def responder(node_input: str):
-        yield _mensagem(node_input)
+    def responder(ctx: Context, node_input: str):
+        yield from saida(ctx, node_input)
 
     async def consultar(ctx: Context, node_input: dict):
         ferramenta = {"listar_cartoes": "listar_cartoes"}.get(
@@ -324,7 +398,8 @@ def criar_workflow(
                 total=textos.reais(dados["limite_total"]),
                 disponivel=textos.reais(dados["limite_disponivel"]),
             )
-        yield _mensagem(texto)
+        for evento in saida(ctx, texto):
+            yield evento
 
     async def executar(ctx: Context, node_input: dict):
         resposta = await ambiente.chamar(
@@ -342,7 +417,8 @@ def criar_workflow(
                 texto = textos.CONFIRMACAO_INVALIDA
             else:
                 texto = textos.FALHA
-            yield _mensagem(texto)
+            for evento in saida(ctx, texto):
+                yield evento
             return
         dados = resposta.dados
         execucao = {"estado": dados["estado"], "protocolo": dados["protocolo"]}
@@ -352,9 +428,9 @@ def criar_workflow(
             if dados["estado"] == "concluida"
             else textos.EM_VERIFICACAO
         )
-        yield _mensagem(
-            modelo.format(final=dados["final"], protocolo=dados["protocolo"])
-        )
+        texto = modelo.format(final=dados["final"], protocolo=dados["protocolo"])
+        for evento in saida(ctx, texto):
+            yield evento
 
     return Workflow(
         name=nome,
@@ -385,7 +461,12 @@ def criar_workflow(
             (verificar_revisao, {"responder": responder}),
             (
                 retomar,
-                {"responder": responder, "consultar": consultar, "executar": executar},
+                {
+                    "responder": responder,
+                    "consultar": consultar,
+                    "executar": executar,
+                    "classificar": classificador,
+                },
             ),
         ],
     )

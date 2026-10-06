@@ -8,12 +8,14 @@ servidor MCP roda em serviço próprio e a sessão é aberta pelo gateway de can
 import json
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from mcp.server.fastmcp import FastMCP
 from mcp.shared.memory import create_connected_server_and_client_session as conectar
 
+from app.auditoria.destinos import Destino, DestinoArquivo
 from app.conhecimento.busca import Buscador, BuscadorLocal
 from app.conhecimento.corpus import Corpus, carregar_corpus
 from app.mcp_cartoes.servidor import (
@@ -54,6 +56,9 @@ class Ambiente:
     corpus: Corpus
     buscador: Buscador
     relogio: Relogio
+    # Fila do atendimento humano. Mock: arquivo local; em produção, a plataforma do
+    # atendimento.
+    atendimento: Destino
 
     def hoje(self) -> date:
         return self.relogio().astimezone(FUSO).date()
@@ -86,7 +91,12 @@ class Ambiente:
         return RespostaMcp(json.loads(texto), None)
 
 
-def criar_ambiente(relogio: Relogio = agora_utc) -> Ambiente:
+FILA_ATENDIMENTO = Path("artifacts/atendimento/fila.jsonl")
+
+
+def criar_ambiente(
+    relogio: Relogio = agora_utc, fila_atendimento: Path = FILA_ATENDIMENTO
+) -> Ambiente:
     catalogo = carregar_catalogo()
     registro = RegistroExecucoes(relogio=relogio)
     politica = Politica(
@@ -107,4 +117,5 @@ def criar_ambiente(relogio: Relogio = agora_utc) -> Ambiente:
         corpus,
         BuscadorLocal(corpus),
         relogio,
+        DestinoArquivo(fila_atendimento),
     )
