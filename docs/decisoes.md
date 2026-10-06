@@ -120,6 +120,10 @@ Quando uma decisão mudar, atualize esta página.
   está num trecho citado pela afirmação; nenhum número fora de marcador. → Descartado: confiar no prompt; juiz
   LLM no caminho da resposta. → Determinística e testável. Garante procedência, não relevância, que fica para
   a avaliação (P5).
+- **Fontes normalizadas antes da verificação.** Colchetes e espaços nas pontas do id citado saem; o id ainda
+  precisa ser um trecho recuperado. → Descartado: recusar o id com colchetes. → Erro de forma não deve virar
+  recusa ao cliente; na avaliação, o redator copiou "[id]" e o revisor repetiu o erro
+  ([evidência](evidencias/escalonamento-2026-10-06.md)).
 - **Redator e revisor como nós separados.** Redator (Flash) e, se a verificação reprova uma resposta com
   conteúdo, revisor (Pro) com os problemas encontrados; segunda reprovação vira recusa com texto fixo. →
   Descartado: laço de tentativas num nó só. → Sem ciclo no grafo, o limite de chamadas é estrutural (até três
@@ -190,6 +194,23 @@ Quando uma decisão mudar, atualize esta página.
 - **Privacidade da avaliação conferida pelo diário da auditoria.** → Descartado: só a métrica
   `sem_dado_pessoal`. → O `eval grade` descarta os eventos de estado; a métrica não vê o texto que o agente
   recebeu. O diário registra exatamente esse texto.
+
+## Escalonamento
+
+- **Pedido de atendente num campo próprio do classificador.** `pede_atendente`, ao lado da intenção. →
+  Descartado: uma intenção "falar com atendente" no catálogo. → Escalonamento é saída transversal, não tipo
+  (Taxonomia); "não consigo bloquear, me passa para alguém" tem as duas coisas, e as duas ficam registradas.
+- **Aceite da oferta só por "sim", comparado por código.** Textos que oferecem atendente deixam uma pendência;
+  outra resposta derruba a oferta e segue o caminho normal. → Descartado: o LLM interpretar o aceite. → O mesmo
+  critério da confirmação (D5), e o cliente não fica preso à oferta.
+- **Três falhas seguidas encaminham sozinhas.** Negado, falha, sem fonte, cartão não encontrado e confirmação
+  inválida contam; fora de escopo não. → Descartado: esperar o cliente pedir. → Insistir com quem não está sendo
+  atendido é a experiência que o escalonamento existe para evitar.
+- **Resumo para o atendente montado por código, a partir do histórico da auditoria.** → Descartado: resumo
+  gerado por LLM. → O atendente age com base nele; gerado da trilha, só contém o que o agente registrou, já
+  mascarado.
+- **Depois do encaminhamento, o agente não responde por cima.** Novas mensagens recebem o protocolo, sem LLM.
+  → Descartado: seguir atendendo até o humano assumir. → Duas vozes na mesma conversa confundem o cliente.
 
 ## Segurança e governança
 

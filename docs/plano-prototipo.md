@@ -17,7 +17,7 @@ Objetivo: tornar executável o núcleo da [arquitetura](arquitetura.md), começa
 | **P1. Base** | Corpus fictício (produtos, tarifas, políticas); catálogo de intenções em YAML com esquema e validação; ajuste de região no scaffold | Feita (o corpus entrou na P3) |
 | **P2. Núcleo determinístico** | Serviço de política + piso de invariantes; confirmação amarrada aos parâmetros (hash, uso único, validade); registro de execuções com idempotência; servidor MCP de cartões (mock) com leitura/escrita separadas e identidade pelo contexto; **testes unitários** de tudo | Feita |
 | **P3. Conhecimento** | Corpus com dono e vigência; busca; citação por afirmação; verificação de fundamentação; valores da tabela oficial; RAG Engine como adaptador de busca | Feita, exceto o RAG Engine (P3.6) |
-| **P4. Guardrails e auditoria** | Mascaramento, Model Armor como plugin, trilha de auditoria, escalonamento com resumo | Em andamento: mascaramento e trilha de auditoria feitos; escalonamento com resumo e Model Armor pendentes |
+| **P4. Guardrails e auditoria** | Mascaramento, Model Armor como plugin, trilha de auditoria, escalonamento com resumo | Em andamento: mascaramento, trilha de auditoria e escalonamento com resumo feitos; Model Armor pendente |
 | **P5. Avaliação** | Golden set, red team, juiz, gate | Em andamento: conjunto de casos, métricas, juiz calibrado e avaliação no CI (federação de identidade) feitos; red team ampliado, comparação de temperatura e gate pendentes |
 | P6. Observabilidade e custo | Traces OpenTelemetry, custo e latência medidos por conversa | Em seguida |
 | P7. Demo e deploy | Playground/demo web; deploy no Agent Runtime (**só com aprovação explícita**) | Opcional |

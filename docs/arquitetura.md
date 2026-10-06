@@ -147,7 +147,9 @@ monitoramento, correlação com a trilha de auditoria.
 | Red team ampliado, casos de vários turnos, comparação de temperatura | 📋 Proposto |
 | Mascaramento de dados pessoais antes do LLM | ✅ Implementado (P4.1): plugin do ADK (`app/guardrails/`) com Sensitive Data Protection no endpoint regional `southamerica-east1` e regras locais com dígito verificador; CPF, cartão, e-mail, telefone, nome e endereço viram marcadores; número completo de cartão vira aviso fixo, sem LLM. Medido no CI (grupo privacidade, 4/4). [Evidência](evidencias/mascaramento-2026-10-05.md) |
 | Trilha de auditoria | ✅ Implementado (P4.2): plugin do ADK (`app/auditoria/`) com um registro por turno, sem dado pessoal em claro; cadeia de hashes por sessão; registro completo no Cloud Storage (retenção travada, objeto gravado uma vez) e metadados no BigQuery, ambos em `southamerica-east1`; verificador que confere a cadeia e o bucket contra o BigQuery. Retenção de 1 dia no laboratório (em produção, o prazo regulatório). [Evidência](evidencias/auditoria-2026-10-06.md) |
-| Escalonamento com resumo, Model Armor | 📋 Proposto (P4.3, P4.4) |
+| Escalonamento com resumo | ✅ Implementado (P4.3): pedido explícito (campo `pede_atendente` do classificador, separado da intenção), aceite da oferta só por "sim" e três falhas seguidas; resumo para o atendente montado por código a partir do histórico da auditoria; chamado com protocolo `ATD-` numa fila local (mock); depois do encaminhamento o agente não responde por cima. [Evidência](evidencias/escalonamento-2026-10-06.md) |
+| Integração com a plataforma de atendimento humano; gatilhos por tema sensível e frustração | 📋 Proposto (exigem interpretação: classificador próprio e avaliação) |
+| Model Armor | 📋 Proposto (P4.4) |
 | Observabilidade | 📋 Proposto (P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
