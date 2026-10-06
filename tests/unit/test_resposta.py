@@ -116,3 +116,21 @@ def test_problema_aponta_a_afirmacao():
 )
 def test_formatacao_brasileira(tipo, valor, esperado):
     assert formatar(Valor(descricao="d", tipo=tipo, valor=Decimal(valor))) == esperado
+
+
+def test_fonte_com_colchetes_e_normalizada():
+    # O redator real já copiou o id como "[id]" (avaliação de 6/out): erro de forma.
+    afirmacao = Afirmacao(
+        texto="A anuidade é {{anuidade_classico}}.",
+        fontes=["[cartao-classico#anuidade]", " cartao-classico#anuidade "],
+    )
+    assert afirmacao.fontes == ["cartao-classico#anuidade", "cartao-classico#anuidade"]
+    assert verificar(Resposta(afirmacoes=[afirmacao]), RECUPERADOS) == []
+
+
+def test_normalizacao_nao_aceita_outro_trecho():
+    # Sem os colchetes, o id ainda precisa ser um dos recuperados.
+    [problema] = verificar_frase(
+        "O desbloqueio é feito só no app.", "[bloqueio-e-desbloqueio#desbloqueio]"
+    )
+    assert "fonte fora da busca: bloqueio-e-desbloqueio#desbloqueio" in problema

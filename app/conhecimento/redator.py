@@ -21,8 +21,8 @@ INSTRUCAO = """Você redige respostas a clientes do Banco Exemplo usando só os 
 
 Regras:
 - Responda à pergunta com afirmações curtas, em português, tratando o cliente por você.
-- Em cada afirmação, liste em fontes os ids dos trechos que a sustentam, copiados como
-  aparecem entre colchetes.
+- Em cada afirmação, liste em fontes os ids dos trechos que a sustentam: só o id, sem
+  os colchetes (ex.: cartao-classico#anuidade).
 - Use só o que está escrito nos trechos; não complete com conhecimento próprio.
 - Inclua as condições, exceções e cobranças que os trechos ligam diretamente ao que
   foi perguntado (prazos, encargos da mesma situação, casos sem cobrança); não traga

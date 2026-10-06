@@ -17,7 +17,7 @@ afirmação. Aqui se garante a procedência de fontes e valores, não a interpre
 import re
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.conhecimento.corpus import MARCADOR, TabelaValores, TipoValor, Trecho, Valor
 
@@ -27,8 +27,20 @@ class Afirmacao(BaseModel):
         description="Uma frase para o cliente. Valores só como {{chave}} do trecho."
     )
     fontes: list[str] = Field(
-        description="Ids dos trechos que sustentam a frase, como aparecem na lista."
+        description="Ids dos trechos que sustentam a frase, sem os colchetes."
     )
+
+    @field_validator("fontes", mode="before")
+    @classmethod
+    def _sem_colchetes(cls, fontes: list) -> list:
+        # O pedido mostra cada trecho como "[id] título", e o redator às vezes copia o id
+        # com os colchetes. Tirar colchetes e espaços das pontas não afrouxa nada: o id
+        # ainda precisa ser exatamente um dos trechos recuperados.
+        if not isinstance(fontes, list):
+            return fontes
+        return [
+            f.strip().strip("[]").strip() if isinstance(f, str) else f for f in fontes
+        ]
 
 
 class Resposta(BaseModel):
