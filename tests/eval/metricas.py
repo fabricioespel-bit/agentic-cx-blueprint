@@ -81,7 +81,12 @@ def conteudo(instance: dict) -> dict:
 
 
 def sem_dado_pessoal(instance: dict) -> dict:
-    """1 se nenhum dado pessoal do caso aparece no trace (sessão, LLM, resposta)."""
+    """1 se nenhum dado pessoal do caso aparece nas saídas dos LLMs nem na resposta.
+
+    Limite: o ``eval grade`` descarta os eventos que só mudam o estado da sessão antes de
+    chamar as métricas, então esta métrica não vê o texto que o agente recebeu. Quem
+    confere esse texto é ``conferir_privacidade.py``, pelo diário da auditoria.
+    """
     dados = (instance.get("esperado") or {}).get("dados_pessoais") or []
     if not dados:
         return _resultado(True, "nada a conferir")

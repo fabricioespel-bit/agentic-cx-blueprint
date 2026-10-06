@@ -205,3 +205,19 @@ def test_sem_dado_pessoal_procura_no_trace_e_na_resposta():
     limpo = caso("De qual cartão?", dados_pessoais=["529.982.247-25"])
     assert M["sem_dado_pessoal"](limpo)["score"] == 1.0
     assert M["sem_dado_pessoal"](caso("ok"))["explanation"] == "nada a conferir"
+
+
+def test_conferir_privacidade_acha_dado_no_diario():
+    conferir = runpy.run_path(
+        str(Path(__file__).parents[1] / "eval" / "conferir_privacidade.py")
+    )
+    casos = [
+        {"eval_case_id": "nome", "esperado": {"dados_pessoais": ["Maria Aparecida"]}},
+        {"eval_case_id": "sem_dados", "esperado": {}},
+    ]
+    vazou = {"sessao": "s1", "mensagem": "Sou a Maria Aparecida dos Santos"}
+    mascarado = {"sessao": "s2", "mensagem": "Sou a [NOME]"}
+    assert conferir["vazamentos"]([vazou, mascarado], casos) == [
+        "nome: 'Maria Aparecida' na sessão s1"
+    ]
+    assert conferir["vazamentos"]([mascarado], casos) == []

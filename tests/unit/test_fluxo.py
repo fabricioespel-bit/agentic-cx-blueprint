@@ -1,7 +1,10 @@
 """Conversas completas pelo grafo do agente, com classificador falso. Sem LLM."""
 
 import asyncio
+import logging
+import tempfile
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from google.adk.apps import App
@@ -9,6 +12,9 @@ from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
+from app.auditoria.destinos import DestinoArquivo
+from app.auditoria.plugin import PluginAuditoria
+from app.auditoria.registro import verificar_cadeia
 from app.guardrails.mascaramento import DetectorLocal, Mascarador
 from app.guardrails.plugin import PluginMascaramento
 from app.mcp_cartoes.sistema import Falha
@@ -46,10 +52,22 @@ class Conversa:
         agente = criar_workflow(
             self.ambiente, classificador, redator, revisor, nome="teste"
         )
-        # Mascaramento só com as regras locais: os testes não usam Google Cloud.
-        plugin = PluginMascaramento(Mascarador([DetectorLocal()]))
+        # Mascaramento só com as regras locais e auditoria só no diário local: os
+        # testes não usam Google Cloud. O envio roda no turno, para o teste ver.
+        self.diario = DestinoArquivo(Path(tempfile.mkdtemp()) / "diario.jsonl")
+        self.destinos: list = []
+        plugins = [
+            PluginMascaramento(Mascarador([DetectorLocal()])),
+            PluginAuditoria(
+                self.diario,
+                self.ambiente.cofre,
+                self.destinos,
+                relogio=relogio,
+                segundo_plano=False,
+            ),
+        ]
         self.runner = InMemoryRunner(
-            app=App(name="teste", root_agent=agente, plugins=[plugin])
+            app=App(name="teste", root_agent=agente, plugins=plugins)
         )
         self.sessao = asyncio.run(
             self.runner.session_service.create_session(app_name="teste", user_id="u")
@@ -316,3 +334,44 @@ def test_turno_comeca_vazio_a_cada_mensagem(conversa):
     conversa.diz("desbloquear_cartao")
     conversa.diz("fora_de_escopo")
     assert conversa.turno() == {"intencao": "fora_de_escopo"}
+
+
+# Trilha de auditoria (P4.2): um registro por turno, encadeado na sessão.
+
+
+def test_auditoria_registra_cada_turno_encadeado_e_mascarado(conversa):
+    conversa.diz("bloquear_cartao_temporario")
+    conversa.diz("o 1234, meu CPF é 529.982.247-25")
+    conversa.diz("SIM")
+    registros = conversa.diario.ler()
+    assert verificar_cadeia(registros) is None
+    pergunta, pedido, execucao = registros
+    assert pergunta["desfecho"] == "pergunta_cartao"
+    assert pedido["desfecho"] == "confirmacao_pedida"
+    assert pedido["mensagem"] == "o 1234, meu CPF é [CPF]"
+    assert pedido["cliente_ref"] == "cli-1"
+    assert execucao["desfecho"] == "executado"
+    assert execucao["execucao"]["protocolo"].startswith("PRT-")
+    # O CPF inteiro, não um pedaço: "529" pode aparecer por acaso dentro de um hash.
+    assert "529.982.247-25" not in str(registros)
+
+
+def test_auditoria_registra_fontes_da_resposta(vigente):
+    vigente.redacoes["redator"] = BOA
+    vigente.diz(PERGUNTA)
+    [registro] = vigente.diario.ler()
+    assert registro["desfecho"] == "respondido"
+    assert registro["conhecimento"]["fontes"] == [ANUIDADE]
+
+
+def test_falha_no_envio_nao_derruba_a_conversa(conversa, caplog):
+    class Fora:
+        def gravar(self, registro):
+            raise ConnectionError
+
+    conversa.destinos.append(Fora())
+    with caplog.at_level(logging.WARNING):
+        resposta = conversa.diz("fora_de_escopo")
+    assert "fora do escopo" in resposta
+    assert "envio a Fora falhou" in caplog.text
+    assert len(conversa.diario.ler()) == 1  # o diário guardou o registro

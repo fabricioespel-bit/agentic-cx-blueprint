@@ -66,6 +66,10 @@ jobs:
           agents-cli eval run --url http://127.0.0.1:18080 --app-name app
           --dataset tests/eval/datasets/conhecimento.json
           --config tests/eval/eval_config.yaml
+      - name: Conferir privacidade pelo diário da auditoria
+        # A métrica sem_dado_pessoal não vê o texto recebido pelo agente (o eval grade
+        # descarta os eventos de estado); o diário registra esse texto.
+        run: uv run python tests/eval/conferir_privacidade.py artifacts/auditoria/diario.jsonl
       - name: Resumo da avaliação
         if: always()
         run: uv run python tests/eval/resumo.py >> "$GITHUB_STEP_SUMMARY"
@@ -79,6 +83,7 @@ jobs:
           path: |
             artifacts/grade_results/
             artifacts/traces/
+            artifacts/auditoria/
           retention-days: 30
       - name: Encerrar o agente
         if: always()

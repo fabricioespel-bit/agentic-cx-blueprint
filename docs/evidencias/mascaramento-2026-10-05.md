@@ -43,8 +43,8 @@ sozinhas, deixando nomes em claro; o teste com o SDP falso pega).
 ## Medido no CI
 
 Quatro casos novos no conjunto de avaliação (grupo `privacidade`) e a métrica `sem_dado_pessoal`, que procura
-os dados de cada caso no trace do agente (estado gravado, saídas dos nós) e na resposta. Execução no GitHub
-Actions, com credencial temporária por federação de identidade (37357854220):
+os dados de cada caso nas saídas dos nós e na resposta. Execução no GitHub Actions, com credencial temporária
+por federação de identidade (37357854220):
 
 | Caso | Comportamento | Chamadas ao LLM | Dado pessoal |
 |---|---|---|---|
@@ -53,8 +53,21 @@ Actions, com credencial temporária por federação de identidade (37357854220):
 | Nome completo numa dúvida | responde com valor e fonte | 2 | nenhum vazou |
 | E-mail numa dúvida | responde com valor e fonte | 2 | nenhum vazou |
 
-O caso do nome só passa com o SDP: as regras locais não detectam nomes. Nenhum aviso de falha do SDP no log.
-Os demais grupos ficaram como antes (as três lacunas da busca lexical seguem falhando de propósito).
+Nenhum aviso de falha do SDP no log, e os demais grupos ficaram como antes (as três lacunas da busca lexical
+seguem falhando de propósito).
+
+**Correção (6/out).** A versão anterior desta seção dizia que o caso do nome "só passa com o SDP". Não é
+verdade: a métrica não prova isso. O `eval grade` descarta os eventos que só mudam o estado da sessão antes de
+chamar as métricas, e é no estado que fica o texto recebido pelo agente; a métrica vê só as saídas dos LLMs e
+a resposta, onde o nome não aparece com ou sem mascaramento. O erro apareceu na validação da auditoria (P4.2):
+localmente, o agente subia sem `GOOGLE_CLOUD_PROJECT` (o `.env` era carregado depois do import do agente),
+portanto sem o SDP; o nome chegou em claro ao diário da auditoria e ao LLM, e a métrica deu 1,0 mesmo assim.
+No CI, as variáveis vêm do workflow e o SDP estava ativo, mas o mascaramento do nome não tinha sido provado.
+
+Correções: o agente carrega o `.env` antes de ler as variáveis e registra na partida quais proteções estão
+ativas; a privacidade passa a ser conferida pelo diário da auditoria (`tests/eval/conferir_privacidade.py`),
+que registra exatamente o texto recebido, em passo próprio do CI que falha se algum dado aparecer; a métrica
+documenta o seu limite.
 
 ## Achados da execução
 

@@ -1,0 +1,19 @@
+[
+  {"name": "versao", "type": "INTEGER", "mode": "REQUIRED", "description": "Versão do formato do registro"},
+  {"name": "sessao", "type": "STRING", "mode": "REQUIRED", "description": "Id da sessão; a cadeia de hashes é por sessão"},
+  {"name": "sequencia", "type": "INTEGER", "mode": "REQUIRED", "description": "Posição do registro na cadeia da sessão (1, 2, ...)"},
+  {"name": "momento", "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Fim do turno, em UTC"},
+  {"name": "cliente_ref", "type": "STRING", "mode": "NULLABLE", "description": "Pseudônimo do cliente, nunca o CPF"},
+  {"name": "desfecho", "type": "STRING", "mode": "NULLABLE", "description": "Respondido, negado, confirmação pedida, executado..."},
+  {"name": "intencao", "type": "STRING", "mode": "NULLABLE", "description": "Intenção classificada"},
+  {"name": "motivo", "type": "STRING", "mode": "NULLABLE", "description": "Motivo de negação ou de recusa do executor"},
+  {"name": "final_descartado", "type": "BOOLEAN", "mode": "NULLABLE", "description": "Saída do classificador fora do formato, descartada"},
+  {"name": "execucao_estado", "type": "STRING", "mode": "NULLABLE", "description": "Concluída ou incerta"},
+  {"name": "protocolo", "type": "STRING", "mode": "NULLABLE", "description": "Protocolo da execução"},
+  {"name": "fontes", "type": "STRING", "mode": "REPEATED", "description": "Trechos citados na resposta de conhecimento"},
+  {"name": "problemas_verificacao", "type": "INTEGER", "mode": "NULLABLE", "description": "Problemas apontados pela verificação de fundamentação"},
+  {"name": "chamadas_llm", "type": "STRING", "mode": "REPEATED", "description": "Nós com LLM chamados no turno"},
+  {"name": "objeto", "type": "STRING", "mode": "REQUIRED", "description": "Registro completo no Cloud Storage (gs://...)"},
+  {"name": "hash", "type": "STRING", "mode": "REQUIRED", "description": "SHA-256 do registro completo"},
+  {"name": "hash_anterior", "type": "STRING", "mode": "REQUIRED", "description": "Hash do registro anterior da sessão"}
+]

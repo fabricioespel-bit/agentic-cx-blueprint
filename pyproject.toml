@@ -20,6 +20,8 @@ dependencies = [
     "pyyaml>=6.0,<7",
     "mcp>=1.30,<2",
     "google-cloud-dlp>=3.40.0",
+    "google-cloud-storage>=3.14.1",
+    "google-cloud-bigquery>=3.45.1",
 ]
 requires-python = ">=3.11,<3.14"
 
