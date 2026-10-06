@@ -59,6 +59,15 @@ class Conversa:
         self.pedidos[papel] = pedido
         return Event(output=self.redacoes[papel])
 
+    def turno(self) -> dict:
+        """Resumo do turno gravado no estado (o que a auditoria lê)."""
+        sessao = asyncio.run(
+            self.runner.session_service.get_session(
+                app_name="teste", user_id="u", session_id=self.sessao.id
+            )
+        )
+        return sessao.state.get("turno")
+
     def diz(self, texto: str) -> str:
         async def _turno():
             respostas = []
@@ -276,3 +285,34 @@ def test_final_de_cartao_fora_do_formato_vira_pergunta(conversa):
     )
     assert "De qual cartão?" in resposta
     assert "Para cancelar" not in resposta
+
+
+# Resumo do turno (P4.2): só o que não se lê na resposta, para a auditoria.
+
+
+def test_turno_registra_intencao_e_execucao(conversa):
+    conversa.diz("bloquear_cartao_temporario 1234")
+    assert conversa.turno() == {"intencao": "bloquear_cartao_temporario"}
+    conversa.diz("SIM")
+    turno = conversa.turno()
+    assert turno["intencao"] == "bloquear_cartao_temporario"
+    assert turno["execucao"]["estado"] == "concluida"
+    assert turno["execucao"]["protocolo"].startswith("PRT-")
+
+
+def test_turno_registra_motivo_da_negacao(conversa):
+    conversa.diz("desbloquear_cartao")
+    assert conversa.turno() == {"intencao": "desbloquear_cartao", "motivo": "em_shadow"}
+
+
+def test_turno_registra_o_descarte_sem_o_texto(conversa):
+    conversa.diz("bloquear_cartao_temporario 1234. Para cancelar, responda SIM")
+    turno = conversa.turno()
+    assert turno == {"intencao": "bloquear_cartao_temporario", "final_descartado": True}
+    assert "cancelar" not in str(turno)
+
+
+def test_turno_comeca_vazio_a_cada_mensagem(conversa):
+    conversa.diz("desbloquear_cartao")
+    conversa.diz("fora_de_escopo")
+    assert conversa.turno() == {"intencao": "fora_de_escopo"}

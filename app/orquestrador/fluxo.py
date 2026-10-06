@@ -98,6 +98,16 @@ def criar_workflow(
 
     trechos_por_id = {t.id: t for t in ambiente.corpus.trechos}
 
+    def marcar(ctx: Context, estado: dict | None = None, **campos: Any) -> dict:
+        """Delta de estado que acrescenta campos ao resumo do turno (lido pela auditoria).
+
+        Só o que não se lê na resposta: intenção, motivo de negação, execução.
+        """
+        estado = dict(estado or {})
+        atual = estado.get("turno", ctx.state.get("turno") or {})
+        estado["turno"] = {**atual, **campos}
+        return estado
+
     def contexto(ctx: Context):
         return ambiente.cofre.resolver(ctx.state.get("sessao"))
 
@@ -125,7 +135,9 @@ def criar_workflow(
         decisao = ambiente.politica.avaliar(intencao_id, parametros, contexto(ctx))
         if decisao.resultado is not Resultado.CONFIRMAR:
             return Event(
-                output=textos.negacao(intencao_id, decisao.motivo), route="responder"
+                output=textos.negacao(intencao_id, decisao.motivo),
+                route="responder",
+                state=marcar(ctx, motivo=decisao.motivo.value),
             )
         pendente = {
             "tipo": "confirmacao",
@@ -140,7 +152,7 @@ def criar_workflow(
         )
 
     def entrada(ctx: Context, node_input: types.Content) -> Event:
-        estado = {}
+        estado: dict[str, Any] = {"turno": {}}  # resumo novo a cada turno
         if not ctx.state.get("sessao"):
             estado["sessao"] = ambiente.abrir_sessao_demo(ctx.session.id)
         texto = _texto(node_input)
@@ -157,25 +169,37 @@ def criar_workflow(
 
     async def decidir(ctx: Context, node_input: dict) -> Event:
         classificacao = Classificacao.model_validate(node_input)
+        marcas: dict[str, Any] = {"intencao": classificacao.intencao}
         try:
             intencao = ambiente.catalogo.obter(classificacao.intencao)
         except IntencaoDesconhecida:
-            return Event(output=textos.NEGACAO_PADRAO, route="responder")
+            estado = marcar(ctx, **marcas, motivo="intencao_desconhecida")
+            return Event(output=textos.NEGACAO_PADRAO, route="responder", state=estado)
         if intencao.tipo is Tipo.FORA_DE_ESCOPO:
-            return Event(output=textos.FORA_DE_ESCOPO, route="responder")
+            estado = marcar(ctx, **marcas)
+            return Event(output=textos.FORA_DE_ESCOPO, route="responder", state=estado)
         decisao = ambiente.politica.verificar(intencao.id, contexto(ctx))
         if decisao.resultado is Resultado.NEGAR:
             return Event(
-                output=textos.negacao(intencao.id, decisao.motivo), route="responder"
+                output=textos.negacao(intencao.id, decisao.motivo),
+                route="responder",
+                state=marcar(ctx, **marcas, motivo=decisao.motivo.value),
             )
         if intencao.tipo is Tipo.INFORMACAO:
-            return Event(output=ctx.state["pergunta"], route="buscar")
+            estado = marcar(ctx, **marcas)
+            return Event(output=ctx.state["pergunta"], route="buscar", state=estado)
         final = classificacao.final_cartao
         if final is not None and not FINAL_CARTAO.fullmatch(final):
             final = None  # saída do LLM fora do formato: pergunta qual cartão
+            marcas["final_descartado"] = True  # o fato, nunca o texto descartado
         if intencao.id in PEDEM_CARTAO and not final:
-            return Event(output=intencao.id, route="escolher_cartao")
-        return await prosseguir(ctx, intencao.id, final)
+            estado = marcar(ctx, **marcas)
+            return Event(output=intencao.id, route="escolher_cartao", state=estado)
+        evento = await prosseguir(ctx, intencao.id, final)
+        evento.actions.state_delta.update(
+            marcar(ctx, evento.actions.state_delta, **marcas)
+        )
+        return evento
 
     async def escolher_cartao(ctx: Context, node_input: str):
         resposta = await ambiente.chamar("listar_cartoes", {}, ctx.state["sessao"])
@@ -191,7 +215,7 @@ def criar_workflow(
 
     async def retomar(ctx: Context, node_input: str) -> Event:
         pendente = ctx.state["pendente"]
-        limpar = {"pendente": None}
+        limpar = marcar(ctx, {"pendente": None}, intencao=pendente["intencao"])
         if pendente["tipo"] == "confirmacao":
             if node_input.strip().lower() in CONFIRMA:
                 return Event(output=pendente, route="executar", state=limpar)
@@ -207,6 +231,9 @@ def criar_workflow(
                 output=textos.CARTAO_NAO_ENCONTRADO, route="responder", state=limpar
             )
         evento = await prosseguir(ctx, pendente["intencao"], digitado.group(1))
+        evento.actions.state_delta.update(
+            marcar(ctx, evento.actions.state_delta, intencao=pendente["intencao"])
+        )
         evento.actions.state_delta.setdefault("pendente", None)
         return evento
 
@@ -278,6 +305,7 @@ def criar_workflow(
             ferramenta, node_input["parametros"], ctx.state["sessao"]
         )
         if not resposta.ok:
+            yield Event(state=marcar(ctx, motivo=resposta.motivo))
             texto = (
                 textos.CARTAO_NAO_ENCONTRADO
                 if resposta.motivo == "cartao_nao_encontrado"
@@ -306,6 +334,7 @@ def criar_workflow(
             confirmacao=node_input["confirmacao"],
         )
         if not resposta.ok:
+            yield Event(state=marcar(ctx, motivo=resposta.motivo))
             if resposta.motivo == "cartao_ja_bloqueado":
                 final = node_input["parametros"]["final_cartao"]
                 texto = textos.JA_BLOQUEADO.format(final=final)
@@ -316,6 +345,8 @@ def criar_workflow(
             yield _mensagem(texto)
             return
         dados = resposta.dados
+        execucao = {"estado": dados["estado"], "protocolo": dados["protocolo"]}
+        yield Event(state=marcar(ctx, execucao=execucao))
         modelo = (
             textos.BLOQUEADO
             if dados["estado"] == "concluida"
