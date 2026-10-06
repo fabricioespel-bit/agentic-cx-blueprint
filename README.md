@@ -34,6 +34,7 @@ parâmetros e com qual autenticação.
 | Registro de execuções | Idempotência técnica (mesma confirmação executa uma vez); timeout vira consulta de estado, nunca sucesso presumido; reconciliação | `app/nucleo/execucoes.py` |
 | Servidor MCP de cartões | Protocolo MCP real (SDK 1.x); identidade e confirmação fora do schema que o LLM vê; idempotência de negócio (bloquear cartão já bloqueado é recusado, sem nova execução) | `app/mcp_cartoes/` |
 | Agente (grafo do ADK) | LLM só em nós sem ferramentas (classificador; redator e revisor no conhecimento); respostas que autorizam ("1234", "SIM") nunca passam pelo LLM; a escrita só é alcançável depois da confirmação | `app/agent.py`, `app/orquestrador/` |
+| Trilha de auditoria | Um registro por turno sem dado pessoal em claro, encadeado por hash na sessão; Cloud Storage com retenção travada (nem o dono do projeto altera) e metadados no BigQuery; verificador da trilha | `app/auditoria/` |
 | Mascaramento | CPF, cartão, e-mail, telefone, nome e endereço viram marcadores antes da sessão e do LLM, pelo Sensitive Data Protection na região e por regras locais; número completo de cartão nunca chega ao modelo | `app/guardrails/` |
 | Conhecimento | Corpus com dono e vigência, sem números no texto; busca; verificação de fundamentação; valores preenchidos pelo código; no máximo uma revisão (Gemini Pro) antes da recusa | `config/conhecimento/`, `app/conhecimento/` |
 
@@ -41,7 +42,7 @@ parâmetros e com qual autenticação.
 catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
 protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
 produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
-(RAG Engine), trilha de auditoria, escalonamento com resumo, gate de qualidade no CI e observabilidade. O status
+(RAG Engine), escalonamento com resumo, gate de qualidade no CI e observabilidade. O status
 completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).
 

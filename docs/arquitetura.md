@@ -146,7 +146,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Gate de qualidade no CI | 📋 Proposto: depende de casos `infiel` e `nao_responde` no conjunto e de execuções estáveis |
 | Red team ampliado, casos de vários turnos, comparação de temperatura | 📋 Proposto |
 | Mascaramento de dados pessoais antes do LLM | ✅ Implementado (P4.1): plugin do ADK (`app/guardrails/`) com Sensitive Data Protection no endpoint regional `southamerica-east1` e regras locais com dígito verificador; CPF, cartão, e-mail, telefone, nome e endereço viram marcadores; número completo de cartão vira aviso fixo, sem LLM. Medido no CI (grupo privacidade, 4/4). [Evidência](evidencias/mascaramento-2026-10-05.md) |
-| Trilha de auditoria, escalonamento com resumo, Model Armor | 📋 Proposto (P4.2–P4.4) |
+| Trilha de auditoria | ✅ Implementado (P4.2): plugin do ADK (`app/auditoria/`) com um registro por turno, sem dado pessoal em claro; cadeia de hashes por sessão; registro completo no Cloud Storage (retenção travada, objeto gravado uma vez) e metadados no BigQuery, ambos em `southamerica-east1`; verificador que confere a cadeia e o bucket contra o BigQuery. Retenção de 1 dia no laboratório (em produção, o prazo regulatório). [Evidência](evidencias/auditoria-2026-10-06.md) |
+| Escalonamento com resumo, Model Armor | 📋 Proposto (P4.3, P4.4) |
 | Observabilidade | 📋 Proposto (P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:

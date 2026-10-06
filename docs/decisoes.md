@@ -157,6 +157,40 @@ Quando uma decisão mudar, atualize esta página.
   grafo responder e cancelar qualquer pendência. → Descartado: classificar a mensagem mascarada. → Fora do
   escopo PCI; nada a interpretar, e nenhuma chamada ao modelo.
 
+- **Formato declarado para todo parâmetro interpolado na confirmação.** O catálogo declara uma expressão
+  regular por parâmetro; o piso recusa texto de confirmação com campo sem formato; agente e executor negam
+  parâmetro fora do formato, faltando ou sobrando; o grafo descarta final de cartão fora do formato e pergunta.
+  → Descartado: confiar na instrução do classificador. → Sem a regra, uma saída do LLM chegava ao texto que
+  autoriza a transação.
+
+## Auditoria
+
+- **Um registro por turno, sem dado pessoal em claro.** Mensagem já mascarada, cliente pelo pseudônimo,
+  intenção, motivo, execução, fontes, nós com LLM e resposta. → Descartado: registrar os eventos brutos da
+  sessão. → Os eventos têm saídas de LLM não verificadas e não dizem por que o agente decidiu.
+- **Resumo do turno no estado, marcado pelos nós.** Só o que não se lê na resposta (intenção, motivo, final
+  descartado, execução); o desfecho é reconhecido pelos textos fixos. → Descartado: o plugin interpretar os
+  eventos. → Nós de código aparecem nos eventos com o nome do grafo; o resumo é explícito e testável.
+- **Cadeia de hashes por sessão.** Cada registro leva o hash do anterior da mesma sessão; o elo fica no estado.
+  → Descartado: cadeia global. → Instâncias em paralelo não precisam se coordenar. A cadeia detecta
+  adulteração, não a impede.
+- **Registro completo no Cloud Storage com retenção travada; só metadados no BigQuery.** → Descartado: tudo no
+  BigQuery; retenção sem trava. → O bucket impede alterar e apagar dentro do prazo, até para o dono do projeto
+  (testado); a tabela consultável fica sem o texto das conversas (minimização). Objeto gravado só se não
+  existir (`if_generation_match=0`).
+- **Quem grava não lê.** A conta do agente tem só `storage.objectCreator` no bucket e `bigquery.dataEditor`
+  na tabela. → Descartado: papéis amplos no projeto. → Separação de funções: a auditoria é lida por outra
+  identidade (o verificador).
+- **Diário local antes do envio, envio em segundo plano.** → Descartado: gravar no Google Cloud dentro do turno;
+  descartar o registro se o envio falhar. → A resposta não espera dois serviços, e uma falha de envio não perde
+  o registro. Reprocessamento do diário fica proposto.
+- **O agente carrega o `.env` e registra as proteções ativas na partida.** → Descartado: depender do
+  `fast_api_app.py`. → O pacote `app` importa o agente antes; localmente, o agente subia sem SDP e sem auditoria
+  no Google Cloud, sem aviso ([evidência](evidencias/auditoria-2026-10-06.md)).
+- **Privacidade da avaliação conferida pelo diário da auditoria.** → Descartado: só a métrica
+  `sem_dado_pessoal`. → O `eval grade` descarta os eventos de estado; a métrica não vê o texto que o agente
+  recebeu. O diário registra exatamente esse texto.
+
 ## Segurança e governança
 
 - **K1 Catálogo.** Configuração versionada por área, com segregação de funções, publicada assinada, somente
