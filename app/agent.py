@@ -6,7 +6,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from google.adk.apps import App
-from google.adk.models import Gemini
 from google.genai import types
 
 from app.auditoria.destinos import DestinoArquivo, DestinoGoogle
@@ -17,6 +16,7 @@ from app.guardrails.mascaramento import DetectorLocal, DetectorSDP, Mascarador
 from app.guardrails.plugin import PluginMascaramento
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
+from app.orquestrador.modelo import GeminiComPrazo
 
 # O .env precisa estar carregado antes de qualquer leitura de variável abaixo. Quem
 # importa o pacote `app` (servidor, playground, testes) passa primeiro por aqui, antes do
@@ -31,8 +31,12 @@ MODEL = "gemini-3.8-flash"
 MODEL_REVISOR = "gemini-2.5-pro"
 
 
-def _gemini(modelo: str) -> Gemini:
-    return Gemini(model=modelo, retry_options=types.HttpRetryOptions(attempts=3))
+def _gemini(modelo: str, prazo: float) -> GeminiComPrazo:
+    # Erros de servidor e de cota: repetição da biblioteca. Sem resposta no prazo:
+    # repetição do GeminiComPrazo (o revisor, Pro, pensa mais e tem prazo maior).
+    return GeminiComPrazo(
+        model=modelo, retry_options=types.HttpRetryOptions(attempts=3), prazo=prazo
+    )
 
 
 projeto = os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -42,9 +46,9 @@ ambiente = criar_ambiente(filtro=FiltroModelArmor(projeto) if projeto else None)
 
 root_agent = criar_workflow(
     ambiente,
-    classificador=criar_classificador(ambiente.catalogo, _gemini(MODEL)),
-    redator=criar_redator("redator", _gemini(MODEL)),
-    revisor=criar_redator("revisor", _gemini(MODEL_REVISOR)),
+    classificador=criar_classificador(ambiente.catalogo, _gemini(MODEL, prazo=15)),
+    redator=criar_redator("redator", _gemini(MODEL, prazo=20)),
+    revisor=criar_redator("revisor", _gemini(MODEL_REVISOR, prazo=40)),
     # Keep in sync with agents-cli-manifest.yaml: agents-cli derives this name
     # from the project `name:` recorded there, and telemetry reports it as
     # gen_ai.agent.name. Renaming the agent only here makes the two disagree,

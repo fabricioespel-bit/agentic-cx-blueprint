@@ -20,23 +20,20 @@ from app.guardrails.mascaramento import DetectorLocal, Mascarador
 from app.guardrails.plugin import PluginMascaramento
 from app.mcp_cartoes.sistema import Falha
 from app.orquestrador.ambiente import criar_ambiente
-from app.orquestrador.fluxo import PRAZOS_LLM, criar_workflow
+from app.orquestrador.fluxo import criar_workflow
 
 # O classificador falso lê a mensagem como "intencao" ou "intencao final".
 # Ex.: "bloquear_cartao_temporario 1234". Mensagem terminada em "?" é dúvida;
-# começando com "atendente" pede atendimento humano. "TRAVA" não responde nunca;
-# "TRAVA_UMA" não responde só na primeira tentativa (o LLM que ficou sem resposta).
+# começando com "atendente" pede atendimento humano. "SEM_RESPOSTA" falha como o
+# modelo que esgotou o prazo nas duas tentativas.
 # Guarda o que recebeu, para os testes de mascaramento.
 RECEBIDO_PELO_CLASSIFICADOR: list[str] = []
 
 
-async def classificador(node_input: str) -> Event:
+def classificador(node_input: str) -> Event:
     RECEBIDO_PELO_CLASSIFICADOR.append(node_input)
-    if "TRAVA" in node_input:
-        tentativas = RECEBIDO_PELO_CLASSIFICADOR.count(node_input)
-        if "TRAVA_UMA" not in node_input or tentativas == 1:
-            await asyncio.sleep(60)
-        node_input = node_input.split(" TRAVA")[0]
+    if "SEM_RESPOSTA" in node_input:
+        raise TimeoutError
     if node_input.startswith("atendente"):
         return Event(output={"intencao": "fora_de_escopo", "pede_atendente": True})
     if node_input.endswith("?"):
@@ -57,7 +54,7 @@ class FiltroFalso:
 
 
 class Conversa:
-    def __init__(self, relogio, prazos: dict[str, float] = PRAZOS_LLM):
+    def __init__(self, relogio):
         pasta = Path(tempfile.mkdtemp())
         self.fila = DestinoArquivo(pasta / "fila.jsonl")
         self.ambiente = criar_ambiente(
@@ -75,7 +72,7 @@ class Conversa:
             return self._redigir("revisor", node_input)
 
         agente = criar_workflow(
-            self.ambiente, classificador, redator, revisor, nome="teste", prazos=prazos
+            self.ambiente, classificador, redator, revisor, nome="teste"
         )
         # Mascaramento só com as regras locais e auditoria só no diário local: os
         # testes não usam Google Cloud. O envio roda no turno, para o teste ver.
@@ -492,24 +489,12 @@ def test_filtro_indisponivel_segue_e_fica_registrado(conversa):
     assert registro["filtro"] == {"indisponivel": True}
 
 
-# Prazo curto para o teste: o classificador falso que trava nunca responde.
-PRAZOS_CURTOS = {"classificador": 0.2, "redator": 0.2, "revisor": 0.2}
-
-
-def test_llm_sem_resposta_e_repetido_uma_vez(relogio):
-    conversa = Conversa(relogio, PRAZOS_CURTOS)
-    resposta = conversa.diz("consultar_limite 1234 TRAVA_UMA")
-    assert "limite" in resposta.lower()
-    assert RECEBIDO_PELO_CLASSIFICADOR[-2:] == ["consultar_limite 1234 TRAVA_UMA"] * 2
-
-
-def test_llm_sem_resposta_nas_duas_tentativas_fica_na_auditoria(relogio):
-    conversa = Conversa(relogio, PRAZOS_CURTOS)
-    with pytest.raises(Exception, match="classificador"):
-        conversa.diz("consultar_limite 1234 TRAVA")
+def test_llm_sem_resposta_fica_na_auditoria_como_interrompido(conversa):
+    with pytest.raises(TimeoutError):
+        conversa.diz("consultar_limite 1234 SEM_RESPOSTA")
     [registro] = conversa.diario.ler()
     assert registro["desfecho"] == "interrompido"
-    assert registro["motivo"] == "erro:NodeTimeoutError"
+    assert registro["motivo"] == "erro:TimeoutError"
     assert registro["resposta"] == ""
     # O turno interrompido entra no histórico e na cadeia: a sessão segue.
     assert "limite" in conversa.diz("consultar_limite 1234").lower()
