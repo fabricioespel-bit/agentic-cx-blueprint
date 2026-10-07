@@ -26,6 +26,7 @@ SEM_CONTEUDO = {
     "ADK_TELEMETRY_IGNORE_RUN_CONFIG": "true",
 }
 ENDPOINT = "https://telemetry.googleapis.com/v1/traces"
+ESCOPO = "https://www.googleapis.com/auth/cloud-platform"
 
 tracer = trace.get_tracer("agentic_cx_blueprint")
 
@@ -76,7 +77,7 @@ def exportar_para_o_google() -> bool:
     if "gcp.project_id" not in provedor.resource.attributes:
         logger.warning("traces: recurso sem gcp.project_id; nada é exportado")
         return False
-    credenciais, _ = google.auth.default()
+    credenciais, _ = google.auth.default(scopes=[ESCOPO])
     exportador = OTLPSpanExporter(
         session=AuthorizedSession(credenciais), endpoint=ENDPOINT
     )

@@ -17,6 +17,7 @@ from google.adk.runners import InMemoryRunner
 from google.adk.telemetry.context import ContentCapturingMode, TelemetryConfig
 from google.genai import types
 from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
@@ -182,3 +183,27 @@ def test_recurso_identifica_o_projeto(monkeypatch):
     recurso = TracerProvider().resource.attributes
     assert recurso["gcp.project_id"] == "projeto-exemplo"
     assert recurso["ambiente"] == "ci"
+
+
+def test_exportacao_pede_escopo(monkeypatch):
+    # Sem escopo, a credencial de federação de identidade do CI não gera token.
+    import google.auth
+
+    from app.observabilidade import traces
+
+    pedidos = []
+
+    def credenciais_falsas(scopes=None):
+        pedidos.append(scopes)
+        return object(), "projeto-exemplo"
+
+    monkeypatch.setattr(google.auth, "default", credenciais_falsas)
+    monkeypatch.setattr(
+        "google.auth.transport.requests.AuthorizedSession", lambda c: None
+    )
+    provedor = TracerProvider(
+        resource=Resource.create({"gcp.project_id": "projeto-exemplo"})
+    )
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: provedor)
+    assert traces.exportar_para_o_google()
+    assert pedidos == [[traces.ESCOPO]]

@@ -96,5 +96,5 @@ jobs:
       - name: Envio de traces (só as linhas do exportador, sem o resto do log)
         if: always()
         run: >
-          grep -E "traces:|opentelemetry|Failed to export" servidor.log
+          grep -E "traces:|opentelemetry|Failed to export|google\.auth\.exceptions" servidor.log
           || echo "nenhuma linha sobre o envio de traces no log do servidor"
