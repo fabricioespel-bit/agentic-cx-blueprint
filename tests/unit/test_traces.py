@@ -27,7 +27,11 @@ from app.auditoria.destinos import DestinoArquivo
 from app.auditoria.plugin import PluginAuditoria
 from app.guardrails.mascaramento import DetectorLocal, Mascarador
 from app.guardrails.plugin import PluginMascaramento
-from app.observabilidade.traces import SEM_CONTEUDO, travar_sem_conteudo
+from app.observabilidade.traces import (
+    SEM_CONTEUDO,
+    identificar_projeto,
+    travar_sem_conteudo,
+)
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
 
@@ -167,3 +171,14 @@ def test_registro_de_auditoria_aponta_para_o_trace(conversa):
     spans = diz(MENSAGEM)
     [registro] = diario.ler()
     assert {format(s.context.trace_id, "032x") for s in spans} == {registro["trace_id"]}
+
+
+def test_recurso_identifica_o_projeto(monkeypatch):
+    # Sem gcp.project_id no recurso, a API de telemetria recusa o envio (400).
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "projeto-exemplo")
+    monkeypatch.setenv("OTEL_RESOURCE_ATTRIBUTES", "ambiente=ci")
+    monkeypatch.delenv("OTEL_SERVICE_NAME", raising=False)
+    identificar_projeto()
+    recurso = TracerProvider().resource.attributes
+    assert recurso["gcp.project_id"] == "projeto-exemplo"
+    assert recurso["ambiente"] == "ci"

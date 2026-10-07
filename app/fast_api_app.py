@@ -63,6 +63,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+EXPORTAR_TRACES = os.environ.get("EXPORTAR_TRACES", "").lower() in ("true", "1")
+if EXPORTAR_TRACES:
+    from app.observabilidade.traces import exportar_para_o_google, identificar_projeto
+
+    identificar_projeto()
+
 app: FastAPI = get_fast_api_app(
     agents_dir=AGENT_DIR,
     web=True,
@@ -74,9 +80,7 @@ app: FastAPI = get_fast_api_app(
 )
 # Traces só com metadados para o Cloud Trace (P6.2). Depois de get_fast_api_app, que cria
 # o provedor do OpenTelemetry; sem o otel_to_cloud, que liga também métricas e logs.
-if os.environ.get("EXPORTAR_TRACES", "").lower() in ("true", "1"):
-    from app.observabilidade.traces import exportar_para_o_google
-
+if EXPORTAR_TRACES:
     if exportar_para_o_google():
         logging.getLogger(__name__).info("traces: exportando para o Cloud Trace")
 app.title = "agentic-cx-blueprint"

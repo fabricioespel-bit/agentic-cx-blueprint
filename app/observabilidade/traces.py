@@ -35,6 +35,27 @@ def travar_sem_conteudo() -> None:
     os.environ.update(SEM_CONTEUDO)
 
 
+def identificar_projeto() -> None:
+    """Põe o projeto nos atributos do recurso; chamar antes de o servidor criar o provedor.
+
+    A API de telemetria recusa o envio (400) sem ``gcp.project_id`` no recurso, e o
+    provedor lê ``OTEL_RESOURCE_ATTRIBUTES`` só ao ser criado.
+    """
+    projeto = os.environ.get("GOOGLE_CLOUD_PROJECT") or _projeto_das_credenciais()
+    atributos = os.environ.get("OTEL_RESOURCE_ATTRIBUTES", "")
+    if projeto and "gcp.project_id=" not in atributos:
+        os.environ["OTEL_RESOURCE_ATTRIBUTES"] = ",".join(
+            filter(None, [atributos, f"gcp.project_id={projeto}"])
+        )
+    os.environ.setdefault("OTEL_SERVICE_NAME", "agentic-cx-blueprint")
+
+
+def _projeto_das_credenciais() -> str | None:
+    import google.auth
+
+    return google.auth.default()[1]
+
+
 def exportar_para_o_google() -> bool:
     """Acrescenta o envio ao Cloud Trace ao provedor que o servidor do ADK criou.
 
@@ -51,6 +72,9 @@ def exportar_para_o_google() -> bool:
     provedor = trace.get_tracer_provider()
     if not hasattr(provedor, "add_span_processor"):
         logger.warning("traces: sem provedor do OpenTelemetry; nada é exportado")
+        return False
+    if "gcp.project_id" not in provedor.resource.attributes:
+        logger.warning("traces: recurso sem gcp.project_id; nada é exportado")
         return False
     credenciais, _ = google.auth.default()
     exportador = OTLPSpanExporter(
