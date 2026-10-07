@@ -149,7 +149,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Trilha de auditoria | ✅ Implementado (P4.2): plugin do ADK (`app/auditoria/`) com um registro por turno, sem dado pessoal em claro; cadeia de hashes por sessão; registro completo no Cloud Storage (retenção travada, objeto gravado uma vez) e metadados no BigQuery, ambos em `southamerica-east1`; verificador que confere a cadeia e o bucket contra o BigQuery. Retenção de 1 dia no laboratório (em produção, o prazo regulatório). [Evidência](evidencias/auditoria-2026-10-06.md) |
 | Escalonamento com resumo | ✅ Implementado (P4.3): pedido explícito (campo `pede_atendente` do classificador, separado da intenção), aceite da oferta só por "sim" e três falhas seguidas; resumo para o atendente montado por código a partir do histórico da auditoria; chamado com protocolo `ATD-` numa fila local (mock); depois do encaminhamento o agente não responde por cima. [Evidência](evidencias/escalonamento-2026-10-06.md) |
 | Integração com a plataforma de atendimento humano; gatilhos por tema sensível e frustração | 📋 Proposto (exigem interpretação: classificador próprio e avaliação) |
-| Model Armor | 📋 Proposto (P4.4) |
+| Filtro de entrada (Model Armor) | ✅ Implementado (P4.4): Model Armor em `us-central1` sobre o texto já mascarado, só antes de um LLM; injeção no limite baixo; mensagem barrada recebe texto fixo, sem LLM, e não conta como falha; se o serviço falhar, a mensagem segue e a falha fica na auditoria. Medido no CI (manipulação 5/5, nenhum falso positivo). [Evidência](evidencias/model-armor-2026-10-07.md) |
+| Prazo nas chamadas ao LLM | ✅ Implementado: prazo e uma repetição por chamada; turno sem resposta fica na auditoria como `interrompido` |
 | Observabilidade | 📋 Proposto (P6) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:

@@ -37,13 +37,14 @@ parâmetros e com qual autenticação.
 | Escalonamento | Pedido do cliente, aceite da oferta ("sim") ou três falhas seguidas encaminham ao atendente com resumo montado por código a partir da trilha, sem LLM; depois disso o agente não responde por cima | `app/orquestrador/atendimento.py` |
 | Trilha de auditoria | Um registro por turno sem dado pessoal em claro, encadeado por hash na sessão; Cloud Storage com retenção travada (nem o dono do projeto altera) e metadados no BigQuery; verificador da trilha | `app/auditoria/` |
 | Mascaramento | CPF, cartão, e-mail, telefone, nome e endereço viram marcadores antes da sessão e do LLM, pelo Sensitive Data Protection na região e por regras locais; número completo de cartão nunca chega ao modelo | `app/guardrails/` |
+| Filtro de entrada | Model Armor sobre o texto já mascarado, só antes de um LLM: injeção barrada recebe texto fixo, sem chamar o modelo; o que passa pelo filtro ainda esbarra no catálogo, na política e na confirmação por código | `app/guardrails/filtro.py` |
 | Conhecimento | Corpus com dono e vigência, sem números no texto; busca; verificação de fundamentação; valores preenchidos pelo código; no máximo uma revisão (Gemini Pro) antes da recusa | `config/conhecimento/`, `app/conhecimento/` |
 
 **Mock, e dito assim no código:** sistema de cartões, cofre de sessão e armazenamentos ficam em memória; o
 catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
 protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
 produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
-(RAG Engine), Model Armor, integração com a plataforma de atendimento humano, gate de qualidade no CI e
+(RAG Engine), integração com a plataforma de atendimento humano, gate de qualidade no CI e
 observabilidade. O status
 completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).

@@ -19,6 +19,12 @@ Quando uma decisão mudar, atualize esta página.
 - **Residência de dados.** Inferência no endpoint global com texto pseudonimizado, sem dados identificadores
   nem financeiros; sessões, base e auditoria na região. → Descartado: só modelos regionais (a região pode não
   ter os modelos atuais). → O modelo é parâmetro; a opção regional fica disponível por configuração.
+- **Prazo e uma repetição em cada chamada ao modelo.** Classificador 15 s, redator 20 s, revisor (Pro) 40 s, por
+  tentativa. → Descartado: só a repetição da biblioteca do Gemini; prazo e repetição no nó do grafo. → A
+  biblioteca repete erros de servidor e de cota, mas não tinha prazo (uma chamada travou o turno por 2 minutos)
+  e o prazo dela não aciona a repetição (testado); o nó do ADK publica um erro ao cliente a cada tentativa que
+  falha, mesmo quando vai repetir. A latência tem cauda longa e a segunda tentativa costuma ser rápida
+  ([evidência](evidencias/model-armor-2026-10-07.md)).
 
 ## Fluxo agêntico
 
@@ -167,6 +173,25 @@ Quando uma decisão mudar, atualize esta página.
   → Descartado: confiar na instrução do classificador. → Sem a regra, uma saída do LLM chegava ao texto que
   autoriza a transação.
 
+- **Filtro de entrada com o Model Armor, sobre o texto já mascarado, em `us-central1`.** Injeção e jailbreak,
+  URL maliciosa e conteúdo nocivo. → Descartado: só as camadas determinísticas; filtro próprio. → Reduz o volume
+  de ataques que chegam ao modelo sem custo de construção; sem região em São Paulo, recebe só texto
+  pseudonimizado (N3). A garantia continua nas camadas determinísticas: as duas tentativas que passaram pelo
+  filtro na sondagem foram seguradas por elas ([evidência](evidencias/model-armor-2026-10-07.md)).
+- **Filtro no grafo, só antes de um LLM.** Na entrada, depois das checagens sem LLM (encaminhamento, número de
+  cartão, pendência). → Descartado: plugin que filtra toda mensagem antes do grafo. → Respostas comparadas por
+  código ("SIM", "1234") não chegam a um modelo e não precisam do filtro; e o nó marca o bloqueio no resumo do
+  turno, que a auditoria registra.
+- **Injeção barrada no limite "baixo ou acima".** → Descartado: médio ou acima. → Na sondagem, a injeção mais
+  direta em português só foi detectada no nível baixo, e nenhuma das sete frases legítimas foi barrada, incluindo
+  "esquece o que eu disse" e "ignora a pergunta anterior". Falsos positivos seguem monitorados pela auditoria.
+- **Mensagem barrada recebe texto fixo, sem oferta de atendente, e não conta como falha.** → Descartado: tratar
+  como negação comum. → Contada como falha, três tentativas de ataque encaminhariam o atacante a um atendente
+  com um resumo da conversa.
+- **Se o Model Armor falhar, a mensagem segue sem o filtro.** A falha fica no registro do turno. → Descartado:
+  recusar a mensagem. → O mesmo critério do mascaramento: o filtro reduz volume, não é a garantia, e o cliente
+  não fica sem atendimento quando o serviço oscila.
+
 ## Auditoria
 
 - **Um registro por turno, sem dado pessoal em claro.** Mensagem já mascarada, cliente pelo pseudônimo,
@@ -191,6 +216,10 @@ Quando uma decisão mudar, atualize esta página.
 - **O agente carrega o `.env` e registra as proteções ativas na partida.** → Descartado: depender do
   `fast_api_app.py`. → O pacote `app` importa o agente antes; localmente, o agente subia sem SDP e sem auditoria
   no Google Cloud, sem aviso ([evidência](evidencias/auditoria-2026-10-06.md)).
+- **Turno sem resposta registrado como `interrompido`.** O turno que termina em erro também entra na trilha,
+  com o tipo do erro no motivo, e conta como falha para o encaminhamento. → Descartado: registrar só os turnos
+  concluídos. → O gancho de fim de turno do ADK só roda em sucesso; foi a trilha que mostrou uma chamada ao LLM
+  travada, e o registro dela aparecia como desfecho `outro`.
 - **Privacidade da avaliação conferida pelo diário da auditoria.** → Descartado: só a métrica
   `sem_dado_pessoal`. → O `eval grade` descarta os eventos de estado; a métrica não vê o texto que o agente
   recebeu. O diário registra exatamente esse texto.
@@ -255,6 +284,9 @@ Quando uma decisão mudar, atualize esta página.
   não muda se o repositório for apagado e recriado com o mesmo nome. Papel `roles/aiplatform.user` (pronto,
   mais amplo que o necessário; papel customizado só com predição fica como melhoria). Gatilhos só no `main` e
   manuais, nunca em PR; uma execução por vez; orçamento mensal que avisa (não bloqueia).
+- **Relatório da avaliação liga o resultado ao caso pelo id e lista os casos não executados.** → Descartado:
+  pela posição no dataset. → O agents-cli retira o caso que falha na execução, e os seguintes recebiam as notas
+  de outro caso sem nenhum erro aparente.
 - **Avaliação informativa antes de virar gate.** → Descartado: bloquear o merge desde a primeira execução. →
   Notas de LLM oscilam; o gate vem depois de execuções estáveis e de casos com problema no conjunto.
 - **Custo.** Conversas de conhecimento custam várias vezes mais que transações; alavancas: cache semântico,
