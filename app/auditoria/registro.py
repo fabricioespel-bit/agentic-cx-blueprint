@@ -17,7 +17,7 @@ from typing import Any
 
 from app.orquestrador.textos import desfecho
 
-VERSAO = 2  # 2: uso (duração do turno e chamadas ao LLM com tokens)
+VERSAO = 3  # 2: uso (duração e chamadas ao LLM); 3: trace_id
 GENESE = "0" * 64  # elo do primeiro registro de cada sessão
 NOS_COM_LLM = ("classificador", "redator", "revisor")
 # Campos de cada chamada ao LLM, iguais no registro e no BigQuery.
@@ -54,6 +54,7 @@ def montar_registro(
     chamadas_llm: list[str],
     hash_anterior: str,
     uso: dict[str, Any] | None = None,
+    trace_id: str | None = None,
 ) -> dict[str, Any]:
     registro = {
         "versao": VERSAO,
@@ -73,6 +74,7 @@ def montar_registro(
         "conhecimento": conhecimento,
         "chamadas_llm": chamadas_llm,
         "uso": uso or {"duracao_ms": None, "llm": []},
+        "trace_id": trace_id,  # liga o registro ao trace (P6.2)
         "hash_anterior": hash_anterior,
     }
     registro["hash"] = calcular_hash(registro)
@@ -117,6 +119,7 @@ def metadados(registro: dict[str, Any], objeto: str) -> dict[str, Any]:
         + len(conhecimento.get("problemas_revisao") or []),
         "chamadas_llm": registro["chamadas_llm"],
         "duracao_ms": uso.get("duracao_ms"),
+        "trace_id": registro.get("trace_id"),
         "llm": [
             {c: chamada.get(c) for c in CAMPOS_LLM} for chamada in uso.get("llm", [])
         ],

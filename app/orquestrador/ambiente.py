@@ -31,6 +31,7 @@ from app.nucleo.confirmacao import Confirmacoes, Relogio, agora_utc
 from app.nucleo.execucoes import RegistroExecucoes
 from app.nucleo.politica import Contexto, Politica
 from app.nucleo.sessao import CofreSessao
+from app.observabilidade.traces import tracer
 
 CLIENTE_DEMO = "cli-1"
 # Vigência de documentos é data de calendário no Brasil, não em UTC.
@@ -86,12 +87,17 @@ class Ambiente:
         meta = {META_SESSAO: token}
         if confirmacao is not None:
             meta[META_CONFIRMACAO] = confirmacao
-        async with conectar(self.servidor) as sessao:
-            resultado = await sessao.call_tool(ferramenta, argumentos, meta=meta)
-        texto = resultado.content[0].text
-        if resultado.isError:
-            return RespostaMcp(None, texto.rsplit(": ", 1)[-1])
-        return RespostaMcp(json.loads(texto), None)
+        # No span, a ferramenta e o resultado; argumentos e retorno ficam de fora.
+        with tracer.start_as_current_span(f"mcp {ferramenta}") as span:
+            async with conectar(self.servidor) as sessao:
+                resultado = await sessao.call_tool(ferramenta, argumentos, meta=meta)
+            texto = resultado.content[0].text
+            span.set_attribute("erro", resultado.isError)
+            if resultado.isError:
+                motivo = texto.rsplit(": ", 1)[-1]
+                span.set_attribute("motivo", motivo)
+                return RespostaMcp(None, motivo)
+            return RespostaMcp(json.loads(texto), None)
 
 
 FILA_ATENDIMENTO = Path("artifacts/atendimento/fila.jsonl")

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import contextlib
+import logging
 import os
 from collections.abc import AsyncIterator
 
@@ -71,6 +72,13 @@ app: FastAPI = get_fast_api_app(
     otel_to_cloud=otel_to_cloud,
     lifespan=lifespan,
 )
+# Traces só com metadados para o Cloud Trace (P6.2). Depois de get_fast_api_app, que cria
+# o provedor do OpenTelemetry; sem o otel_to_cloud, que liga também métricas e logs.
+if os.environ.get("EXPORTAR_TRACES", "").lower() in ("true", "1"):
+    from app.observabilidade.traces import exportar_para_o_google
+
+    if exportar_para_o_google():
+        logging.getLogger(__name__).info("traces: exportando para o Cloud Trace")
 app.title = "agentic-cx-blueprint"
 app.description = "API for interacting with the Agent agentic-cx-blueprint"
 

@@ -14,6 +14,7 @@ from app.conhecimento.redator import criar_redator
 from app.guardrails.filtro import FiltroModelArmor
 from app.guardrails.mascaramento import DetectorLocal, DetectorSDP, Mascarador
 from app.guardrails.plugin import PluginMascaramento
+from app.observabilidade.traces import travar_sem_conteudo
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
 from app.orquestrador.modelo import GeminiComPrazo
@@ -24,6 +25,8 @@ from app.orquestrador.modelo import GeminiComPrazo
 # sem o SDP e sem a auditoria no Google Cloud, e sem aviso. Não sobrescreve variáveis já
 # definidas (CI).
 load_dotenv()
+# Os spans do ADK nunca levam o texto da conversa (P6.2); vale antes da primeira chamada.
+travar_sem_conteudo()
 logger = logging.getLogger(__name__)
 
 MODEL = "gemini-3.8-flash"

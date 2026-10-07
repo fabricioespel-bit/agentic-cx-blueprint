@@ -16,7 +16,7 @@ from google.genai import types
 
 from app.auditoria.destinos import DestinoArquivo
 from app.auditoria.plugin import PluginAuditoria
-from app.auditoria.registro import CAMPOS_LLM, metadados
+from app.auditoria.registro import CAMPOS_LLM, VERSAO, metadados
 from app.orquestrador.ambiente import criar_ambiente
 from app.orquestrador.fluxo import criar_classificador, criar_workflow
 
@@ -75,7 +75,7 @@ def test_turno_registra_tokens_e_duracao_de_cada_chamada(conversa):
     diz, diario, _ = conversa
     diz("Qual a previsão do tempo?")
     [registro] = diario.ler()
-    assert registro["versao"] == 2
+    assert registro["versao"] == VERSAO
     [chamada] = registro["uso"]["llm"]
     assert chamada["no"] == "classificador"
     assert chamada["modelo"] == "modelo-falso"

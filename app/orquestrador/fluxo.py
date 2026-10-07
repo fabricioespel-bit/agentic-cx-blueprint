@@ -28,6 +28,7 @@ from app.conhecimento.resposta import verificar as verificar_fundamentacao
 from app.guardrails.mascaramento import CARTAO
 from app.nucleo.catalogo import Catalogo, IntencaoDesconhecida, Tipo
 from app.nucleo.politica import Resultado
+from app.observabilidade.traces import tracer
 from app.orquestrador import atendimento, textos
 from app.orquestrador.ambiente import Ambiente
 
@@ -168,7 +169,11 @@ def criar_workflow(
 
     async def filtrar(ctx: Context, texto: str, estado: dict) -> Event | None:
         """Filtro de entrada, só antes de um LLM. Barrada: texto fixo, sem LLM."""
-        avaliacao = await asyncio.to_thread(ambiente.filtro.avaliar, texto)
+        with tracer.start_as_current_span("filtro de entrada") as span:
+            avaliacao = await asyncio.to_thread(ambiente.filtro.avaliar, texto)
+            span.set_attribute("barrado", avaliacao.barrado)
+            span.set_attribute("filtros", avaliacao.filtros)
+            span.set_attribute("indisponivel", avaliacao.indisponivel)
         if avaliacao.indisponivel:
             estado.update(marcar(ctx, estado, filtro={"indisponivel": True}))
         if not avaliacao.barrado:

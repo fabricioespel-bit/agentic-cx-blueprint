@@ -16,6 +16,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from app.observabilidade.traces import tracer
+
 logger = logging.getLogger(__name__)
 
 MARCADORES = {
@@ -51,11 +53,19 @@ class Mascarador:
     def mascarar(self, texto: str) -> str:
         achados: list[Achado] = []
         for detector in self._detectores:
-            try:
-                achados += detector.detectar(texto)
-            except Exception:
-                # Nunca registrar o texto: ele ainda tem os dados pessoais.
-                logger.warning("detector %s falhou", type(detector).__name__)
+            nome = type(detector).__name__
+            # No span, só o tipo e a quantidade dos achados, nunca o trecho.
+            with tracer.start_as_current_span(f"mascaramento {nome}") as span:
+                try:
+                    novos = detector.detectar(texto)
+                except Exception:
+                    # Nunca registrar o texto: ele ainda tem os dados pessoais.
+                    logger.warning("detector %s falhou", nome)
+                    span.set_attribute("falhou", True)
+                    continue
+                span.set_attribute("achados", len(novos))
+                span.set_attribute("tipos", sorted({a.tipo for a in novos}))
+                achados += novos
         return _aplicar(texto, achados)
 
 

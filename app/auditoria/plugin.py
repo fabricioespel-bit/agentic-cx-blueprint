@@ -27,6 +27,7 @@ from app.auditoria.destinos import Destino, DestinoArquivo
 from app.auditoria.registro import GENESE, NOS_COM_LLM, montar_registro
 from app.nucleo.confirmacao import Relogio, agora_utc
 from app.nucleo.sessao import CofreSessao
+from app.observabilidade.traces import trace_atual
 from app.orquestrador.atendimento import HISTORICO_MAX
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,7 @@ class PluginAuditoria(BasePlugin):
             ),
             chamadas_llm=[e.author for e in com_texto if e.author in NOS_COM_LLM],
             uso=uso,
+            trace_id=trace_atual(),
             hash_anterior=anterior["hash"],
         )
         # O elo da próxima vez fica no estado da sessão, persistido com ela, e um item
