@@ -9,6 +9,7 @@ import pytest
 
 from app.auditoria.destinos import DestinoArquivo, DestinoGoogle
 from app.auditoria.registro import (
+    CAMPOS_LLM,
     GENESE,
     desfecho,
     metadados,
@@ -146,5 +147,7 @@ def test_destino_google_acusa_recusa_do_bigquery():
 def test_esquema_do_bigquery_tem_exatamente_as_colunas_dos_metadados():
     # Se um campo mudar em metadados(), a tabela precisa mudar junto.
     esquema = Path(__file__).parents[2] / "config" / "auditoria" / "turnos.schema.json"
-    colunas = {c["name"] for c in json.loads(esquema.read_text(encoding="utf-8"))}
-    assert set(metadados(cadeia(1)[0], "gs://b/o.json")) == colunas
+    colunas = json.loads(esquema.read_text(encoding="utf-8"))
+    assert set(metadados(cadeia(1)[0], "gs://b/o.json")) == {c["name"] for c in colunas}
+    [llm] = [c for c in colunas if c["name"] == "llm"]
+    assert [f["name"] for f in llm["fields"]] == list(CAMPOS_LLM)

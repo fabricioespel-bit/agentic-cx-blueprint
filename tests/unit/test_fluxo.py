@@ -79,7 +79,6 @@ class Conversa:
         self.diario = DestinoArquivo(pasta / "diario.jsonl")
         self.destinos: list = []
         plugins = [
-            PluginMascaramento(Mascarador([DetectorLocal()])),
             PluginAuditoria(
                 self.diario,
                 self.ambiente.cofre,
@@ -87,6 +86,7 @@ class Conversa:
                 relogio=relogio,
                 segundo_plano=False,
             ),
+            PluginMascaramento(Mascarador([DetectorLocal()])),
         ]
         self.runner = InMemoryRunner(
             app=App(name="teste", root_agent=agente, plugins=plugins)

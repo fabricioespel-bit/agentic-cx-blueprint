@@ -79,9 +79,11 @@ destinos = (
 app = App(
     root_agent=root_agent,
     name="app",
+    # A auditoria vem primeiro só para a duração do turno incluir o mascaramento; ela
+    # não altera a mensagem, e o registro é montado no fim do turno.
     plugins=[
-        PluginMascaramento(mascarador),
         PluginAuditoria(diario, ambiente.cofre, destinos, relogio=ambiente.relogio),
+        PluginMascaramento(mascarador),
     ],
 )
 

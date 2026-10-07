@@ -17,9 +17,20 @@ from typing import Any
 
 from app.orquestrador.textos import desfecho
 
-VERSAO = 1
+VERSAO = 2  # 2: uso (duração do turno e chamadas ao LLM com tokens)
 GENESE = "0" * 64  # elo do primeiro registro de cada sessão
 NOS_COM_LLM = ("classificador", "redator", "revisor")
+# Campos de cada chamada ao LLM, iguais no registro e no BigQuery.
+CAMPOS_LLM = (
+    "no",
+    "modelo",
+    "ms",
+    "tokens_entrada",
+    "tokens_saida",
+    "tokens_pensamento",
+    "tokens_cache",
+    "erro",
+)
 
 
 def calcular_hash(registro: dict[str, Any]) -> str:
@@ -42,6 +53,7 @@ def montar_registro(
     conhecimento: dict[str, Any] | None,
     chamadas_llm: list[str],
     hash_anterior: str,
+    uso: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     registro = {
         "versao": VERSAO,
@@ -60,6 +72,7 @@ def montar_registro(
         "filtro": turno.get("filtro"),
         "conhecimento": conhecimento,
         "chamadas_llm": chamadas_llm,
+        "uso": uso or {"duracao_ms": None, "llm": []},
         "hash_anterior": hash_anterior,
     }
     registro["hash"] = calcular_hash(registro)
@@ -85,6 +98,7 @@ def metadados(registro: dict[str, Any], objeto: str) -> dict[str, Any]:
     execucao = registro.get("execucao") or {}
     encaminhamento = registro.get("encaminhamento") or {}
     conhecimento = registro.get("conhecimento") or {}
+    uso = registro.get("uso") or {}
     return {
         "versao": registro["versao"],
         "sessao": registro["sessao"],
@@ -102,6 +116,10 @@ def metadados(registro: dict[str, Any], objeto: str) -> dict[str, Any]:
         "problemas_verificacao": len(conhecimento.get("problemas") or [])
         + len(conhecimento.get("problemas_revisao") or []),
         "chamadas_llm": registro["chamadas_llm"],
+        "duracao_ms": uso.get("duracao_ms"),
+        "llm": [
+            {c: chamada.get(c) for c in CAMPOS_LLM} for chamada in uso.get("llm", [])
+        ],
         "objeto": objeto,
         "hash": registro["hash"],
         "hash_anterior": registro["hash_anterior"],

@@ -4,16 +4,24 @@ Lê os eventos do turno e o resumo que o grafo deixou no estado (``turno``), mon
 registro, encadeia o hash com o anterior da sessão (guardado no estado, em
 ``auditoria``), grava primeiro no diário local e envia aos destinos em segundo plano.
 Falha no envio não derruba a conversa: fica registrada, e o registro segue no diário.
+
+Também mede o turno (P6.1): duração desde a chegada da mensagem e, por chamada ao LLM, o
+nó, o modelo, os tokens e a duração. Só números; o custo é calculado na consulta, com a
+tabela de preços vigente.
 """
 
 import asyncio
 import logging
+import time
 from typing import Any
 
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
+from google.adk.models import LlmRequest, LlmResponse
 from google.adk.plugins.base_plugin import BasePlugin
+from google.genai import types
 
 from app.auditoria.destinos import Destino, DestinoArquivo
 from app.auditoria.registro import GENESE, NOS_COM_LLM, montar_registro
@@ -46,6 +54,55 @@ class PluginAuditoria(BasePlugin):
         self._relogio = relogio
         self._segundo_plano = segundo_plano
         self._envios: set[asyncio.Task] = set()
+        # Medições do turno em andamento, por invocação (o plugin atende turnos em
+        # paralelo): início do turno, início da chamada ao LLM por nó, chamadas feitas.
+        self._inicio_turno: dict[str, float] = {}
+        self._inicio_llm: dict[tuple[str, str], tuple[float, str]] = {}
+        self._chamadas: dict[str, list[dict[str, Any]]] = {}
+
+    async def on_user_message_callback(
+        self, *, invocation_context: InvocationContext, user_message: types.Content
+    ) -> None:
+        self._inicio_turno[invocation_context.invocation_id] = time.monotonic()
+
+    async def before_model_callback(
+        self, *, callback_context: CallbackContext, llm_request: LlmRequest
+    ) -> None:
+        chave = (callback_context.invocation_id, callback_context.agent_name)
+        self._inicio_llm[chave] = (time.monotonic(), llm_request.model or "")
+
+    async def after_model_callback(
+        self, *, callback_context: CallbackContext, llm_response: LlmResponse
+    ) -> None:
+        uso = llm_response.usage_metadata
+        self._chamada(
+            callback_context,
+            tokens_entrada=uso.prompt_token_count if uso else None,
+            tokens_saida=uso.candidates_token_count if uso else None,
+            tokens_pensamento=uso.thoughts_token_count if uso else None,
+            tokens_cache=uso.cached_content_token_count if uso else None,
+        )
+
+    async def on_model_error_callback(
+        self,
+        *,
+        callback_context: CallbackContext,
+        llm_request: LlmRequest,
+        error: Exception,
+    ) -> None:
+        self._chamada(callback_context, erro=type(error).__name__)
+
+    def _chamada(self, contexto: CallbackContext, **campos: Any) -> None:
+        chave = (contexto.invocation_id, contexto.agent_name)
+        inicio, modelo = self._inicio_llm.pop(chave, (None, ""))
+        self._chamadas.setdefault(contexto.invocation_id, []).append(
+            {
+                "no": contexto.agent_name,
+                "modelo": modelo,
+                "ms": _ms(inicio),
+                **campos,
+            }
+        )
 
     async def after_run_callback(
         self, *, invocation_context: InvocationContext
@@ -69,6 +126,10 @@ class PluginAuditoria(BasePlugin):
         self, ic: InvocationContext, motivo: str | None = None
     ) -> None:
         sessao = ic.session
+        uso = {
+            "duracao_ms": _ms(self._inicio_turno.pop(ic.invocation_id, None)),
+            "llm": self._chamadas.pop(ic.invocation_id, []),
+        }
         eventos = [e for e in sessao.events if e.invocation_id == ic.invocation_id]
         com_texto = [e for e in eventos if _texto(e)]
         mensagem = next((_texto(e) for e in com_texto if e.author == "user"), "")
@@ -96,6 +157,7 @@ class PluginAuditoria(BasePlugin):
                 sessao.state.get("conhecimento") if mexeu_no_conhecimento else None
             ),
             chamadas_llm=[e.author for e in com_texto if e.author in NOS_COM_LLM],
+            uso=uso,
             hash_anterior=anterior["hash"],
         )
         # O elo da próxima vez fica no estado da sessão, persistido com ela, e um item
@@ -139,3 +201,7 @@ class PluginAuditoria(BasePlugin):
             return self._cofre.resolver(token).cliente_ref
         except Exception:
             return None
+
+
+def _ms(inicio: float | None) -> int | None:
+    return None if inicio is None else round((time.monotonic() - inicio) * 1000)
