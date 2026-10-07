@@ -9,6 +9,7 @@ Adequações do protótipo: a confirmação é por "SIM" digitado, com correspon
 (em produção, pelo gateway); o texto chega ao LLM sem mascaramento (P4).
 """
 
+import asyncio
 import re
 import secrets
 from typing import Any
@@ -165,6 +166,19 @@ def criar_workflow(
         if textos.OFERTA_ATENDENTE in texto:
             yield Event(state={"pendente": {"tipo": "oferta_atendente"}})
 
+    async def filtrar(ctx: Context, texto: str, estado: dict) -> Event | None:
+        """Filtro de entrada, só antes de um LLM. Barrada: texto fixo, sem LLM."""
+        avaliacao = await asyncio.to_thread(ambiente.filtro.avaliar, texto)
+        if avaliacao.indisponivel:
+            estado.update(marcar(ctx, estado, filtro={"indisponivel": True}))
+        if not avaliacao.barrado:
+            return None
+        motivo = "filtro:" + ",".join(avaliacao.filtros)
+        estado = marcar(
+            ctx, estado, motivo=motivo, filtro={"barrado": avaliacao.filtros}
+        )
+        return Event(output=textos.MENSAGEM_BARRADA, route="responder", state=estado)
+
     def contexto(ctx: Context):
         return ambiente.cofre.resolver(ctx.state.get("sessao"))
 
@@ -208,7 +222,7 @@ def criar_workflow(
             state={"pendente": pendente},
         )
 
-    def entrada(ctx: Context, node_input: types.Content) -> Event:
+    async def entrada(ctx: Context, node_input: types.Content) -> Event:
         estado: dict[str, Any] = {"turno": {}}  # resumo novo a cada turno
         if not ctx.state.get("sessao"):
             estado["sessao"] = ambiente.abrir_sessao_demo(ctx.session.id)
@@ -226,10 +240,13 @@ def criar_workflow(
             return Event(
                 output=textos.NUMERO_DE_CARTAO, route="responder", state=estado
             )
-        rota = "retomar" if ctx.state.get("pendente") else "classificar"
         # O conhecimento busca pela mensagem do cliente, não pela intenção.
         estado["pergunta"] = texto
-        return Event(output=texto, route=rota, state=estado)
+        if ctx.state.get("pendente"):
+            return Event(output=texto, route="retomar", state=estado)
+        if barrada := await filtrar(ctx, texto, estado):
+            return barrada
+        return Event(output=texto, route="classificar", state=estado)
 
     async def decidir(ctx: Context, node_input: dict) -> Event:
         classificacao = Classificacao.model_validate(node_input)
@@ -285,10 +302,12 @@ def criar_workflow(
         if pendente["tipo"] == "oferta_atendente":
             if node_input.strip().lower() in CONFIRMA:
                 return encaminhar(ctx, "aceite_da_oferta", textos.ENCAMINHADO)
-            # Qualquer outra resposta: a oferta cai e a mensagem segue o caminho normal.
-            return Event(
-                output=node_input, route="classificar", state={"pendente": None}
-            )
+            # Qualquer outra resposta: a oferta cai e a mensagem segue o caminho normal,
+            # passando pelo filtro, porque vai para o classificador.
+            estado: dict[str, Any] = {"pendente": None}
+            if barrada := await filtrar(ctx, node_input, estado):
+                return barrada
+            return Event(output=node_input, route="classificar", state=estado)
         limpar = marcar(ctx, {"pendente": None}, intencao=pendente["intencao"])
         if pendente["tipo"] == "confirmacao":
             if node_input.strip().lower() in CONFIRMA:

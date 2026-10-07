@@ -85,6 +85,14 @@ JA_ENCAMINHADO = (
 )
 
 
+# Mensagem barrada pelo filtro de entrada (P4.4). Sem oferta de atendente, de propósito:
+# com ela, três tentativas de ataque seguidas levariam o atacante a um humano.
+MENSAGEM_BARRADA = (
+    "Não consigo seguir com essa mensagem. Se precisar de algo sobre seus cartões, é só "
+    "me dizer."
+)
+
+
 def negacao(intencao_id: str, motivo: str | None) -> str:
     """Retorna texto fixo de negação por intenção ou motivo."""
     if intencao_id in NEGACOES_POR_INTENCAO:
@@ -123,6 +131,7 @@ DESFECHOS = [
     (_modelo(ENCAMINHADO), "encaminhado"),
     (_modelo(ENCAMINHADO_FALHAS), "encaminhado"),
     (_modelo(JA_ENCAMINHADO), "ja_encaminhado"),
+    (_modelo(MENSAGEM_BARRADA), "barrado"),
     *[
         (_modelo(t), "negado")
         for t in (NEGACAO_PADRAO, *NEGACOES.values(), *NEGACOES_POR_INTENCAO.values())

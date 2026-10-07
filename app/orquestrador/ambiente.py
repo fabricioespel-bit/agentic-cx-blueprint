@@ -18,6 +18,7 @@ from mcp.shared.memory import create_connected_server_and_client_session as cone
 from app.auditoria.destinos import Destino, DestinoArquivo
 from app.conhecimento.busca import Buscador, BuscadorLocal
 from app.conhecimento.corpus import Corpus, carregar_corpus
+from app.guardrails.filtro import Filtro, SemFiltro
 from app.mcp_cartoes.servidor import (
     META_CONFIRMACAO,
     META_SESSAO,
@@ -59,6 +60,8 @@ class Ambiente:
     # Fila do atendimento humano. Mock: arquivo local; em produção, a plataforma do
     # atendimento.
     atendimento: Destino
+    # Filtro de entrada do LLM (Model Armor); sem projeto, não filtra.
+    filtro: Filtro
 
     def hoje(self) -> date:
         return self.relogio().astimezone(FUSO).date()
@@ -95,7 +98,9 @@ FILA_ATENDIMENTO = Path("artifacts/atendimento/fila.jsonl")
 
 
 def criar_ambiente(
-    relogio: Relogio = agora_utc, fila_atendimento: Path = FILA_ATENDIMENTO
+    relogio: Relogio = agora_utc,
+    fila_atendimento: Path = FILA_ATENDIMENTO,
+    filtro: Filtro | None = None,
 ) -> Ambiente:
     catalogo = carregar_catalogo()
     registro = RegistroExecucoes(relogio=relogio)
@@ -118,4 +123,5 @@ def criar_ambiente(
         BuscadorLocal(corpus),
         relogio,
         DestinoArquivo(fila_atendimento),
+        filtro if filtro is not None else SemFiltro(),
     )

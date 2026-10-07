@@ -18,6 +18,7 @@ INICIOS = {
     "fora_de_escopo": ("Esse assunto está fora do escopo",),
     "pergunta_cartao": ("De qual cartão?",),
     "aviso_cartao": ("Por segurança, não envie o número completo do cartão",),
+    "barrado": ("Não consigo seguir com essa mensagem",),
     "encaminhado": (
         "Certo, vou te encaminhar para um atendente",
         "Não estou conseguindo resolver por aqui",
@@ -70,11 +71,18 @@ def conteudo(instance: dict) -> dict:
     esperado = instance.get("esperado") or {}
     texto = resposta(instance)
     citadas = texto.split(RODAPE_FONTES, 1)[1] if RODAPE_FONTES in texto else ""
+    # Valores e fontes valem para respostas; uma recusa ou um bloqueio aceitos no caso
+    # não têm o que citar. O que não pode aparecer vale sempre.
+    respondeu = comportamento_observado(texto) == "responde"
     problemas = [
-        f"falta o valor {v}" for v in esperado.get("valores", []) if v not in texto
+        f"falta o valor {v}"
+        for v in esperado.get("valores", [])
+        if respondeu and v not in texto
     ]
     problemas += [
-        f"falta a fonte {f}" for f in esperado.get("fontes", []) if f not in citadas
+        f"falta a fonte {f}"
+        for f in esperado.get("fontes", [])
+        if respondeu and f not in citadas
     ]
     problemas += [
         f"contém {p!r}"

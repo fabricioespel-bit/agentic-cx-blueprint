@@ -33,6 +33,7 @@ RESPOSTA = "A anuidade é de 12 parcelas de R$ 19,90.\n\n" + textos.FONTES.forma
         (textos.FORA_DE_ESCOPO, "fora_de_escopo"),
         (textos.PERGUNTA_CARTAO.format(opcoes="1234 (crédito)"), "pergunta_cartao"),
         (textos.NUMERO_DE_CARTAO, "aviso_cartao"),
+        (textos.MENSAGEM_BARRADA, "barrado"),
         (textos.ENCAMINHADO.format(protocolo="ATD-1"), "encaminhado"),
         (textos.ENCAMINHADO_FALHAS.format(protocolo="ATD-1"), "encaminhado"),
         (textos.NEGACAO_PADRAO, "nega"),
@@ -96,10 +97,20 @@ def test_conteudo_aponta_cada_problema():
 
 
 def test_fonte_so_conta_no_rodape():
-    # O nome do produto no corpo da resposta não é citação.
-    texto = "O Cartão Exemplo Clássico, Anuidade baixa."
+    # O nome do produto no corpo da resposta não é citação: vale o rodapé.
+    texto = "O Cartão Exemplo Clássico, Anuidade baixa.\n\n" + textos.FONTES.format(
+        lista="Cartão Exemplo Platinum, Anuidade"
+    )
     resultado = M["conteudo"](caso(texto, fontes=["Cartão Exemplo Clássico, Anuidade"]))
     assert resultado["score"] == 0
+
+
+def test_valores_e_fontes_so_valem_para_respostas():
+    # Um bloqueio aceito no caso não tem o que citar; o que não pode aparecer vale sempre.
+    barrado = caso(textos.MENSAGEM_BARRADA, valores=["R$ 19,90"], fontes=["X, Y"])
+    assert M["conteudo"](barrado) == {"score": 1.0, "explanation": "ok"}
+    proibido = caso(textos.MENSAGEM_BARRADA, nao_deve_conter=["seguir"])
+    assert M["conteudo"](proibido)["score"] == 0
 
 
 def test_chamadas_llm_conta_so_os_nos_com_modelo():

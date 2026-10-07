@@ -12,6 +12,7 @@ from google.genai import types
 from app.auditoria.destinos import DestinoArquivo, DestinoGoogle
 from app.auditoria.plugin import PluginAuditoria
 from app.conhecimento.redator import criar_redator
+from app.guardrails.filtro import FiltroModelArmor
 from app.guardrails.mascaramento import DetectorLocal, DetectorSDP, Mascarador
 from app.guardrails.plugin import PluginMascaramento
 from app.orquestrador.ambiente import criar_ambiente
@@ -34,7 +35,10 @@ def _gemini(modelo: str) -> Gemini:
     return Gemini(model=modelo, retry_options=types.HttpRetryOptions(attempts=3))
 
 
-ambiente = criar_ambiente()
+projeto = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+# Filtro de entrada do LLM (Model Armor, us-central1): só com projeto configurado.
+ambiente = criar_ambiente(filtro=FiltroModelArmor(projeto) if projeto else None)
 
 root_agent = criar_workflow(
     ambiente,
@@ -50,7 +54,6 @@ root_agent = criar_workflow(
 
 # SDP regional e regras locais juntos; se o SDP falhar, as regras seguem sozinhas. Sem
 # projeto configurado (testes unitários), só as regras locais.
-projeto = os.environ.get("GOOGLE_CLOUD_PROJECT")
 detectores = [DetectorSDP(projeto), DetectorLocal()] if projeto else [DetectorLocal()]
 mascarador = Mascarador(detectores)
 
@@ -81,11 +84,11 @@ app = App(
 # Proteções ativas, na partida: uma proteção desligada não pode passar despercebida.
 if projeto:
     logger.info(
-        "proteções: mascaramento com SDP regional e regras locais; auditoria no "
-        "diário, no Cloud Storage e no BigQuery"
+        "proteções: mascaramento com SDP regional e regras locais; filtro de entrada "
+        "com Model Armor; auditoria no diário, no Cloud Storage e no BigQuery"
     )
 else:
     logger.warning(
         "GOOGLE_CLOUD_PROJECT ausente: mascaramento só com regras locais (nomes e "
-        "endereços passam) e auditoria só no diário local"
+        "endereços passam), sem filtro de entrada e auditoria só no diário local"
     )

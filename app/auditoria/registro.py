@@ -57,6 +57,7 @@ def montar_registro(
         "final_descartado": bool(turno.get("final_descartado")),
         "execucao": turno.get("execucao"),
         "encaminhamento": turno.get("encaminhamento"),
+        "filtro": turno.get("filtro"),
         "conhecimento": conhecimento,
         "chamadas_llm": chamadas_llm,
         "hash_anterior": hash_anterior,
