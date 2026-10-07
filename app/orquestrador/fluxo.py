@@ -18,7 +18,7 @@ from google.adk.agents import LlmAgent
 from google.adk.agents.context import Context
 from google.adk.events.event import Event
 from google.adk.models import Gemini
-from google.adk.workflow import Workflow
+from google.adk.workflow import RetryConfig, Workflow, node
 from google.genai import types
 from pydantic import BaseModel, Field
 
@@ -50,6 +50,14 @@ FALHAS_DE_CONFIRMACAO = {
     "chave_em_conflito",
 }
 TIPOS = {"credito": "crédito", "debito": "débito"}
+# Prazo de cada nó com LLM, em segundos, por tentativa. A biblioteca do Gemini repete
+# erros de servidor e de cota, mas não espera com prazo: uma chamada sem resposta
+# travava o turno por minutos. Estourado o prazo, o nó é cancelado e repetido uma vez;
+# o revisor (Pro) pensa mais e tem prazo maior.
+PRAZOS_LLM = {"classificador": 15.0, "redator": 20.0, "revisor": 40.0}
+TENTATIVAS_LLM = RetryConfig(
+    max_attempts=2, initial_delay=0.5, exceptions=["NodeTimeoutError"]
+)
 
 
 class Classificacao(BaseModel):
@@ -100,10 +108,24 @@ def _texto(conteudo: types.Content) -> str:
 
 
 def criar_workflow(
-    ambiente: Ambiente, classificador: Any, redator: Any, revisor: Any, nome: str
+    ambiente: Ambiente,
+    classificador: Any,
+    redator: Any,
+    revisor: Any,
+    nome: str,
+    prazos: dict[str, float] = PRAZOS_LLM,
 ) -> Workflow:
     """Monta o grafo. Os nós com LLM (classificador, redator, revisor) são LlmAgent em
     produção e funções nos testes."""
+
+    classificador, redator, revisor = (
+        node(no, timeout=prazos[papel], retry_config=TENTATIVAS_LLM)
+        for no, papel in (
+            (classificador, "classificador"),
+            (redator, "redator"),
+            (revisor, "revisor"),
+        )
+    )
 
     trechos_por_id = {t.id: t for t in ambiente.corpus.trechos}
 

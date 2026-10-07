@@ -13,6 +13,11 @@ def test_tres_falhas_seguidas():
     assert not falhas_repetidas([NEGADO, NEGADO], "consulta")  # o turno atual deu certo
 
 
+def test_turno_interrompido_conta_como_falha():
+    interrompido = {"intencao": None, "desfecho": "interrompido", "motivo": "erro:X"}
+    assert falhas_repetidas([interrompido, interrompido], "falha")
+
+
 def test_fora_de_escopo_nao_conta_como_falha():
     fora = {"intencao": "fora_de_escopo", "desfecho": "fora_de_escopo", "motivo": None}
     assert not falhas_repetidas([fora, fora], "fora_de_escopo")

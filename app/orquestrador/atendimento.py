@@ -9,7 +9,14 @@ from typing import Any
 
 # Desfechos que contam como falha para o encaminhamento automático.
 DESFECHOS_DE_FALHA = frozenset(
-    {"negado", "falha", "sem_fonte", "cartao_nao_encontrado", "confirmacao_invalida"}
+    {
+        "negado",
+        "falha",
+        "sem_fonte",
+        "cartao_nao_encontrado",
+        "confirmacao_invalida",
+        "interrompido",
+    }
 )
 FALHAS_SEGUIDAS = 3
 HISTORICO_MAX = 10  # itens guardados no estado da sessão

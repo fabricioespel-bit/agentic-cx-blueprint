@@ -140,6 +140,9 @@ DESFECHOS = [
 
 
 def desfecho(resposta: str) -> str:
+    # Turno sem resposta: erro no grafo ou cliente que desistiu de esperar.
+    if not resposta.strip():
+        return "interrompido"
     if RODAPE_FONTES in resposta:
         return "respondido"
     for modelo, nome in DESFECHOS:

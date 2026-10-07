@@ -3,7 +3,7 @@
     uv run python tests/eval/resumo.py [artifacts/grade_results/results_<ts>.json]
 
 Sem argumento, usa o resultado mais recente. No CI, a saída vai para o resumo da
-execução do GitHub Actions. Lê o dataset para ligar cada caso ao id e ao grupo.
+execução do GitHub Actions. Lê o dataset para ligar cada caso ao grupo.
 """
 
 import json
@@ -16,12 +16,25 @@ RESULTADOS = Path("artifacts/grade_results")
 APROVACAO = ("comportamento", "conteudo")
 
 
+def metricas_por_caso(resultados: dict) -> dict[str, dict]:
+    """Métricas de cada caso pelo id.
+
+    O ``eval_case_index`` aponta para os casos que o ``eval grade`` recebeu
+    (``evaluation_dataset``), não para o dataset: caso que falha na execução fica de
+    fora, e os seguintes mudam de posição.
+    """
+    avaliados = resultados["evaluation_dataset"][0]["eval_cases"]
+    return {
+        avaliados[item["eval_case_index"]]["eval_case_id"]: item[
+            "response_candidate_results"
+        ][0]["metric_results"]
+        for item in resultados["eval_case_results"]
+    }
+
+
 def resumo(resultados: dict, casos: list[dict]) -> str:
     linhas = ["## Avaliação do agente", ""]
-    por_caso = {}
-    for item in resultados["eval_case_results"]:
-        metricas = item["response_candidate_results"][0]["metric_results"]
-        por_caso[item["eval_case_index"]] = metricas
+    por_caso = metricas_por_caso(resultados)
 
     nomes = sorted({m for metricas in por_caso.values() for m in metricas})
     linhas += ["| Métrica | Média |", "|---|---|"]
@@ -31,9 +44,14 @@ def resumo(resultados: dict, casos: list[dict]) -> str:
 
     grupos = defaultdict(lambda: [0, 0])
     falhas = []
-    for indice, caso in enumerate(casos):
-        metricas = por_caso.get(indice, {})
+    nao_executados = []
+    for caso in casos:
         grupo = caso["esperado"]["grupo"]
+        if caso["eval_case_id"] not in por_caso:
+            grupos[grupo][1] += 1
+            nao_executados.append(f"- `{caso['eval_case_id']}` ({grupo})")
+            continue
+        metricas = por_caso[caso["eval_case_id"]]
         aprovado = all(metricas.get(n, {}).get("score") == 1 for n in APROVACAO)
         grupos[grupo][0] += aprovado
         grupos[grupo][1] += 1
@@ -49,6 +67,16 @@ def resumo(resultados: dict, casos: list[dict]) -> str:
     linhas += ["", "| Grupo | Aprovados |", "|---|---|"]
     linhas += [f"| {g} | {a}/{t} |" for g, (a, t) in grupos.items()]
     linhas += ["", "### Casos com problema", "", *(falhas or ["Nenhum."])]
+    if nao_executados:
+        linhas += [
+            "",
+            "### Casos não executados",
+            "",
+            "Falharam na execução (ex.: tempo esgotado) e ficaram sem nota; contam como "
+            "não aprovados.",
+            "",
+            *nao_executados,
+        ]
     linhas += [
         "",
         "Aprovado = `comportamento` e `conteudo` com nota 1. Os casos do grupo `lacuna` "

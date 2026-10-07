@@ -50,7 +50,24 @@ class PluginAuditoria(BasePlugin):
     async def after_run_callback(
         self, *, invocation_context: InvocationContext
     ) -> None:
-        ic = invocation_context
+        await self._registrar(invocation_context)
+
+    async def on_run_error_callback(
+        self, *, invocation_context: InvocationContext, error: Exception
+    ) -> None:
+        # Turno que terminou em erro (ex.: prazo do LLM estourado nas duas tentativas)
+        # também entra na trilha, com desfecho "interrompido" e o tipo do erro no
+        # motivo. O gancho só notifica: o erro segue para o runner de qualquer forma.
+        try:
+            await self._registrar(
+                invocation_context, motivo=f"erro:{type(error).__name__}"
+            )
+        except Exception:
+            logger.exception("auditoria: turno com erro não foi registrado")
+
+    async def _registrar(
+        self, ic: InvocationContext, motivo: str | None = None
+    ) -> None:
         sessao = ic.session
         eventos = [e for e in sessao.events if e.invocation_id == ic.invocation_id]
         com_texto = [e for e in eventos if _texto(e)]
@@ -64,6 +81,9 @@ class PluginAuditoria(BasePlugin):
             "conhecimento" in (e.actions.state_delta or {}) for e in eventos
         )
         anterior = sessao.state.get("auditoria") or {"sequencia": 0, "hash": GENESE}
+        turno = sessao.state.get("turno") or {}
+        if motivo:
+            turno = {**turno, "motivo": motivo}
         registro = montar_registro(
             sessao=sessao.id,
             sequencia=anterior["sequencia"] + 1,
@@ -71,7 +91,7 @@ class PluginAuditoria(BasePlugin):
             cliente_ref=self._cliente(sessao.state.get("sessao")),
             mensagem=mensagem,
             resposta=respostas[-1] if respostas else "",
-            turno=sessao.state.get("turno") or {},
+            turno=turno,
             conhecimento=(
                 sessao.state.get("conhecimento") if mexeu_no_conhecimento else None
             ),

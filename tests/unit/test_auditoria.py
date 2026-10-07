@@ -56,6 +56,7 @@ def cadeia(n: int) -> list[dict]:
         ),
         (textos.NEGACOES_POR_INTENCAO["desbloquear_cartao"], "negado"),
         ("texto que não é de nenhum modelo", "outro"),
+        ("", "interrompido"),
     ],
 )
 def test_desfecho_pelo_texto_fixo(resposta, esperado):

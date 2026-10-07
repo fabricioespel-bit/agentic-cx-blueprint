@@ -173,10 +173,16 @@ def test_resumo_agrupa_e_lista_os_casos_com_problema():
     resumo = runpy.run_path(str(Path(__file__).parents[1] / "eval" / "resumo.py"))
     casos = [
         {"eval_case_id": "a", "esperado": {"grupo": "responde"}},
+        {"eval_case_id": "perdido", "esperado": {"grupo": "responde"}},
         {"eval_case_id": "b", "esperado": {"grupo": "responde"}},
     ]
     ok = {"score": 1.0, "explanation": "ok"}
+    # "perdido" falhou na execução: o eval grade só recebe "a" e "b", e o índice 1
+    # é "b", não o segundo caso do dataset.
     resultados = {
+        "evaluation_dataset": [
+            {"eval_cases": [{"eval_case_id": "a"}, {"eval_case_id": "b"}]}
+        ],
         "eval_case_results": [
             {
                 "eval_case_index": 0,
@@ -199,12 +205,32 @@ def test_resumo_agrupa_e_lista_os_casos_com_problema():
                     }
                 ],
             },
-        ]
+        ],
     }
     texto = resumo["resumo"](resultados, casos)
-    assert "| responde | 2/2 |" in texto
+    assert "| responde | 2/3 |" in texto
     assert "- `b` (responde): fidelidade: rotulo: excesso" in texto
+    assert "### Casos não executados\n" in texto
+    assert "\n- `perdido` (responde)\n" in texto
     assert "`a`" not in texto
+
+
+def test_calibracao_liga_o_juiz_ao_caso_pelo_id():
+    calibrar = runpy.run_path(str(Path(__file__).parents[1] / "eval" / "calibrar.py"))
+    resultados = {
+        "evaluation_dataset": [
+            {"eval_cases": [{"eval_case_id": "a"}, {"eval_case_id": "c"}]}
+        ],
+        "eval_case_results": [
+            {
+                "eval_case_index": 1,
+                "response_candidate_results": [
+                    {"metric_results": {"fidelidade": {"explanation": "rotulo: ok"}}}
+                ],
+            }
+        ],
+    }
+    assert calibrar["rotulos_do_juiz"](resultados) == {"c": ("ok", "")}
 
 
 def test_sem_dado_pessoal_procura_no_trace_e_na_resposta():
