@@ -89,4 +89,12 @@ jobs:
           retention-days: 30
       - name: Encerrar o agente
         if: always()
-        run: kill "$(cat servidor.pid)" 2>/dev/null || true
+        run: |
+          kill "$(cat servidor.pid)" 2>/dev/null || true
+          # Espera o servidor sair (até 15 s), para o último lote de spans ser enviado.
+          for _ in $(seq 1 15); do kill -0 "$(cat servidor.pid)" 2>/dev/null || break; sleep 1; done
+      - name: Envio de traces (só as linhas do exportador, sem o resto do log)
+        if: always()
+        run: >
+          grep -E "traces:|opentelemetry|Failed to export" servidor.log
+          || echo "nenhuma linha sobre o envio de traces no log do servidor"
