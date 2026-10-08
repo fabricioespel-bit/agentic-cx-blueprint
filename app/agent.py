@@ -66,7 +66,14 @@ mascarador = Mascarador(detectores)
 
 # Auditoria: diário local sempre; com projeto, também o bucket com retenção travada
 # (registro completo) e o BigQuery (metadados), ambos em southamerica-east1.
-diario = DestinoArquivo(Path("artifacts/auditoria/diario.jsonl"))
+# AUDITORIA_NA_NUVEM=false desliga os dois: o teste de integração sobe o servidor de
+# verdade, e turno de teste não pode entrar na trilha real (o bucket não deixa apagar).
+diario = DestinoArquivo(
+    Path(os.environ.get("AUDITORIA_DIARIO", "artifacts/auditoria/diario.jsonl"))
+)
+na_nuvem = (
+    bool(projeto) and os.environ.get("AUDITORIA_NA_NUVEM", "true").lower() != "false"
+)
 destinos = (
     [
         DestinoGoogle(
@@ -75,7 +82,7 @@ destinos = (
             tabela=os.environ.get("AUDITORIA_TABELA", f"{projeto}.auditoria.turnos"),
         )
     ]
-    if projeto
+    if na_nuvem
     else []
 )
 
@@ -91,10 +98,15 @@ app = App(
 )
 
 # Proteções ativas, na partida: uma proteção desligada não pode passar despercebida.
-if projeto:
+if na_nuvem:
     logger.info(
         "proteções: mascaramento com SDP regional e regras locais; filtro de entrada "
         "com Model Armor; auditoria no diário, no Cloud Storage e no BigQuery"
+    )
+elif projeto:
+    logger.warning(
+        "AUDITORIA_NA_NUVEM=false: auditoria só no diário local; mascaramento com SDP "
+        "e filtro de entrada com Model Armor seguem ligados"
     )
 else:
     logger.warning(

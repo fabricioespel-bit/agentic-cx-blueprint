@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from google.adk.agents.run_config import RunConfig, StreamingMode
 from google.adk.apps import App
 from google.adk.models import BaseLlm, LlmResponse
 from google.adk.runners import InMemoryRunner
@@ -22,21 +23,35 @@ from app.orquestrador.fluxo import criar_classificador, criar_workflow
 
 
 class ModeloFalso(BaseLlm):
-    """Classifica tudo como fora de escopo; "SEM_RESPOSTA" falha por prazo."""
+    """Classifica tudo como fora de escopo; "SEM_RESPOSTA" falha por prazo.
+
+    Em streaming, manda a resposta em pedaços (partial) e depois a resposta completa,
+    como o ADK faz com o Gemini.
+    """
 
     async def generate_content_async(self, llm_request, stream=False):
         if "SEM_RESPOSTA" in str(llm_request.contents):
             raise TimeoutError
+        uso = types.GenerateContentResponseUsageMetadata(
+            prompt_token_count=812,
+            candidates_token_count=14,
+            thoughts_token_count=66,
+        )
+        if stream:
+            for pedaco in ('{"intencao": ', '"fora_de_escopo"}'):
+                yield LlmResponse(
+                    content=types.Content(
+                        role="model", parts=[types.Part(text=pedaco)]
+                    ),
+                    partial=True,
+                    usage_metadata=uso,
+                )
         yield LlmResponse(
             content=types.Content(
                 role="model",
                 parts=[types.Part(text='{"intencao": "fora_de_escopo"}')],
             ),
-            usage_metadata=types.GenerateContentResponseUsageMetadata(
-                prompt_token_count=812,
-                candidates_token_count=14,
-                thoughts_token_count=66,
-            ),
+            usage_metadata=uso,
         )
 
 
@@ -55,14 +70,17 @@ def conversa(relogio):
     plugin = PluginAuditoria(diario, ambiente.cofre, [], relogio, segundo_plano=False)
     runner = InMemoryRunner(app=App(name="teste", root_agent=agente, plugins=[plugin]))
 
-    def diz(texto: str) -> None:
+    def diz(texto: str, streaming: StreamingMode = StreamingMode.NONE) -> None:
         async def _turno():
             sessao = await runner.session_service.create_session(
                 app_name="teste", user_id="u"
             )
             mensagem = types.Content(role="user", parts=[types.Part(text=texto)])
             async for _ in runner.run_async(
-                user_id="u", session_id=sessao.id, new_message=mensagem
+                user_id="u",
+                session_id=sessao.id,
+                new_message=mensagem,
+                run_config=RunConfig(streaming_mode=streaming),
             ):
                 pass
 
@@ -106,4 +124,15 @@ def test_bigquery_recebe_as_chamadas_com_os_mesmos_campos(conversa):
     assert linha["duracao_ms"] >= 0
     [chamada] = linha["llm"]
     assert set(chamada) == set(CAMPOS_LLM)
+    assert chamada["tokens_entrada"] == 812
+
+
+def test_streaming_registra_uma_chamada_por_pedido_ao_modelo(conversa):
+    # Antes, cada pedaço da resposta virava uma "chamada", sem modelo e sem duração.
+    diz, diario, _ = conversa
+    diz("Qual a previsão do tempo?", StreamingMode.SSE)
+    [registro] = diario.ler()
+    [chamada] = registro["uso"]["llm"]
+    assert chamada["modelo"] == "modelo-falso"
+    assert chamada["ms"] >= 0
     assert chamada["tokens_entrada"] == 812

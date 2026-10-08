@@ -75,6 +75,10 @@ class PluginAuditoria(BasePlugin):
     async def after_model_callback(
         self, *, callback_context: CallbackContext, llm_response: LlmResponse
     ) -> None:
+        # No streaming, o ADK chama este gancho a cada pedaço da resposta e, no fim,
+        # com a resposta completa: só ela fecha a chamada e traz o uso total.
+        if llm_response.partial:
+            return
         uso = llm_response.usage_metadata
         self._chamada(
             callback_context,

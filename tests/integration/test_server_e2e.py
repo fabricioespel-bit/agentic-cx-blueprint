@@ -18,10 +18,12 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import uuid
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -72,6 +74,10 @@ def start_server() -> subprocess.Popen[str]:
     env["INTEGRATION_TEST"] = "TRUE"
     # Advertise a loopback URL so the A2A client can reach the card's transport.
     env["APP_URL"] = BASE_URL
+    # Turno de teste não entra na trilha de auditoria real (o bucket tem retenção
+    # travada e não deixa apagar): só no diário, num diretório temporário.
+    env["AUDITORIA_NA_NUVEM"] = "false"
+    env["AUDITORIA_DIARIO"] = str(Path(tempfile.mkdtemp()) / "diario.jsonl")
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
