@@ -19,7 +19,7 @@ Objetivo: tornar executável o núcleo da [arquitetura](arquitetura.md), começa
 | **P3. Conhecimento** | Corpus com dono e vigência; busca; citação por afirmação; verificação de fundamentação; valores da tabela oficial; RAG Engine como adaptador de busca | Feita, exceto o RAG Engine (P3.6) |
 | **P4. Guardrails e auditoria** | Mascaramento, Model Armor, trilha de auditoria, escalonamento com resumo | Feita (o Model Armor entrou no grafo, não como plugin; ver decisões) |
 | **P5. Avaliação** | Golden set, red team, juiz, gate | Em andamento: conjunto de casos, métricas, juiz calibrado e avaliação no CI (federação de identidade) feitos; red team ampliado, comparação de temperatura e gate pendentes |
-| P6. Observabilidade e custo | Traces OpenTelemetry, custo e latência medidos por conversa | Em seguida |
+| **P6. Observabilidade e custo** | Traces OpenTelemetry, custo e latência medidos por conversa | Feita (traces sem o texto da conversa; custo só do LLM; coletor, métricas e alertas propostos). Próximo passo indicado pelos números: latência (limitar o pensamento, revisar prazos) |
 | P7. Demo e deploy | Playground/demo web; deploy no Agent Runtime (**só com aprovação explícita**) | Opcional |
 
 ## Critério de pronto do núcleo (P2)

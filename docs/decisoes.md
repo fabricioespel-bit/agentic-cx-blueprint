@@ -223,6 +223,42 @@ Quando uma decisão mudar, atualize esta página.
 - **Privacidade da avaliação conferida pelo diário da auditoria.** → Descartado: só a métrica
   `sem_dado_pessoal`. → O `eval grade` descarta os eventos de estado; a métrica não vê o texto que o agente
   recebeu. O diário registra exatamente esse texto.
+- **No streaming, só a resposta completa fecha a chamada ao LLM.** → Descartado: registrar cada resposta que o
+  ADK entrega. → O ADK entrega cada pedaço da resposta; uma chamada virava três registros, dois sem modelo e sem
+  duração.
+- **Destinos na nuvem desligáveis só para teste.** `AUDITORIA_NA_NUVEM=false`, usado pelo teste de integração,
+  com aviso na partida do servidor. → Descartado: o teste usar o `.env` local. → Ele gravava turnos de teste na
+  trilha real, e o bucket com retenção travada não deixa apagar.
+
+## Observabilidade e custo
+
+- **Uso por turno na própria trilha de auditoria.** Duração do turno e, por chamada ao LLM, nó, modelo,
+  duração, tokens (entrada, saída, pensamento, cache) e erro. → Descartado: medir só por traces. → A trilha já
+  tem intenção e desfecho; latência e custo por intenção saem de uma consulta, sem cruzar duas fontes, e com a
+  retenção da auditoria ([evidência](evidencias/observabilidade-2026-10-08.md)).
+- **Traces sem o texto da conversa, com a captura travada.** Três variáveis de ambiente desligam a captura de
+  conteúdo do ADK, e a última impede que uma chamada a religue pelo `RunConfig`; os spans próprios levam só
+  metadados (achados do mascaramento, resultado do filtro, chamadas ao sistema de cartões). → Descartado: a
+  captura padrão; desligar só pela configuração da chamada. → O texto só existe na trilha, com retenção travada
+  e acesso restrito. Um teste de controle prova que, sem a trava, o texto vazaria.
+- **Só traces, pela API de telemetria.** O envio é acrescentado ao provedor que o servidor do ADK cria. →
+  Descartado: a opção `otel_to_cloud` do ADK. → Ela liga também métricas e logs, e os logs do ADK podem levar o
+  conteúdo das mensagens.
+- **Traces em `us`.** O bucket de traces do projeto já existia quando o padrão de local foi configurado para
+  southamerica-east1, e o local de um bucket não muda. → Descartado: desligar a exportação até haver um projeto
+  com o bucket em São Paulo. → Os spans não levam dado pessoal; o que precisa ficar na região (a trilha, com o
+  texto) fica. Numa implantação real, o padrão de local é configurado antes do primeiro trace.
+- **O registro de auditoria guarda o `trace_id`.** → Descartado: fontes independentes. → É assim que se vai de
+  um turno lento no relatório à etapa que gastou o tempo.
+- **Custo calculado na consulta, com preço vigente na data do turno.** Tabela em `config/custo/precos.yaml`,
+  com data e fonte da consulta. → Descartado: gravar o custo no registro; um preço único por modelo. → O registro
+  é imutável e encadeado por hash, e o preço muda (o Flash dobra em 2027); mudar a tabela não exige reprocessar.
+- **Custo desconhecido não é custo zero.** Preço vazio é recusado na carga; chamada sem contagem de tokens e
+  modelo sem preço aparecem à parte no relatório, fora do total. → Descartado: tratar como zero. → Um custo
+  subestimado em silêncio é pior que um custo que avisa que está incompleto.
+- **Uso e custo no resumo de cada avaliação.** → Descartado: só a consulta manual ao BigQuery. → A variação de
+  latência do serviço aparece na mesma página das notas: numa rodada, três casos sem nota eram latência do
+  Gemini, não regressão.
 
 ## Escalonamento
 
@@ -289,7 +325,11 @@ Quando uma decisão mudar, atualize esta página.
   de outro caso sem nenhum erro aparente.
 - **Avaliação informativa antes de virar gate.** → Descartado: bloquear o merge desde a primeira execução. →
   Notas de LLM oscilam; o gate vem depois de execuções estáveis e de casos com problema no conjunto.
-- **Custo.** Conversas de conhecimento custam várias vezes mais que transações; alavancas: cache semântico,
-  cache de contexto, modelo menor no classificador, limite de turnos, avaliações em lote.
+- **Custo.** Medido: cerca de USD 2 por mil turnos (Gemini 3.8 Flash, preço promocional, só o LLM); dúvida
+  sobre produtos custa cerca de 4 vezes um bloqueio de cartão, porque passa pela busca e pelo redator; o
+  pensamento do modelo é a maior parte do custo (54% no classificador, 66% no redator). O risco operacional maior
+  é a latência, não o custo (p95 do turno de 24 s a 48 s, conforme o momento). Alavancas: limitar o pensamento,
+  revisar os prazos, cache semântico, cache de contexto, modelo menor no classificador, limite de turnos
+  ([evidência](evidencias/observabilidade-2026-10-08.md)).
 - **Roadmap.** Promoção por intenção (fundação → shadow → assistido → autônomo em conhecimento → autônomo em
   transações), critérios definidos antes, regressão automática em violação de segurança.

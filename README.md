@@ -39,13 +39,14 @@ parâmetros e com qual autenticação.
 | Mascaramento | CPF, cartão, e-mail, telefone, nome e endereço viram marcadores antes da sessão e do LLM, pelo Sensitive Data Protection na região e por regras locais; número completo de cartão nunca chega ao modelo | `app/guardrails/` |
 | Filtro de entrada | Model Armor sobre o texto já mascarado, só antes de um LLM: injeção barrada recebe texto fixo, sem chamar o modelo; o que passa pelo filtro ainda esbarra no catálogo, na política e na confirmação por código | `app/guardrails/filtro.py` |
 | Conhecimento | Corpus com dono e vigência, sem números no texto; busca; verificação de fundamentação; valores preenchidos pelo código; no máximo uma revisão (Gemini Pro) antes da recusa | `config/conhecimento/`, `app/conhecimento/` |
+| Observabilidade e custo | Uso por turno na trilha (duração e tokens por chamada ao LLM); custo calculado com a tabela de preços vigente na data do turno; relatório por etapa, conversa e intenção; traces OpenTelemetry só com metadados, sem o texto da conversa | `app/observabilidade/`, `config/custo/` |
 
 **Mock, e dito assim no código:** sistema de cartões, cofre de sessão e armazenamentos ficam em memória; o
 catálogo não é assinado; a busca é lexical e local, e a tabela de valores é um arquivo. **Adequações do
 protótipo:** confirmação por "SIM" digitado (em produção, botão do canal), sessão de demonstração (em
 produção, aberta pelo gateway), servidor MCP no mesmo processo. **Ainda não implementado:** busca semântica
 (RAG Engine), integração com a plataforma de atendimento humano, gate de qualidade no CI e
-observabilidade. O status
+métricas e alertas de operação. O status
 completo está na tabela
 [Implementado × proposto](docs/arquitetura.md#implementado--proposto).
 
@@ -85,6 +86,13 @@ Google Cloud por federação de identidade, sem chave guardada.
 uv run uvicorn app.fast_api_app:app --host 127.0.0.1 --port 18080      # em outro terminal
 agents-cli eval run --url http://127.0.0.1:18080 --app-name app \
   --dataset tests/eval/datasets/conhecimento.json --config tests/eval/eval_config.yaml
+```
+
+Latência, tokens e custo estimado de cada turno, por etapa e por intenção, a partir da trilha de auditoria
+([evidência](docs/evidencias/observabilidade-2026-10-08.md)):
+
+```bash
+uv run python -m app.observabilidade.relatorio artifacts/auditoria/diario.jsonl
 ```
 
 ## Como conversar com o agente
