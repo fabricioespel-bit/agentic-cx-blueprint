@@ -259,6 +259,11 @@ Quando uma decisão mudar, atualize esta página.
 - **Uso e custo no resumo de cada avaliação.** → Descartado: só a consulta manual ao BigQuery. → A variação de
   latência do serviço aparece na mesma página das notas: numa rodada, três casos sem nota eram latência do
   Gemini, não regressão.
+- **Classificador com pensamento baixo.** `thinking_level=LOW`, o menor que o `gemini-3.8-flash` aceita
+  (`MINIMAL` é recusado). → Descartado: o padrão do modelo. → Num experimento com 25 mensagens rotuladas, com
+  armadilhas (custo do bloqueio, cancelamento, final com 2 dígitos), ambos acertaram 50 de 50, e o pensamento
+  caiu de 131 para 6 tokens: metade do custo da chamada. Efeito na latência não medido: o serviço estava lento
+  (p95 de 101 s sem prazo), e a espera estava na fila do serviço, não na geração.
 
 ## Escalonamento
 

@@ -88,7 +88,14 @@ def criar_classificador(catalogo: Catalogo, modelo: Gemini) -> LlmAgent:
         model=modelo,
         instruction=INSTRUCAO.format(opcoes=opcoes),
         output_schema=Classificacao,
-        generate_content_config=types.GenerateContentConfig(temperature=0),
+        # Pensamento baixo: no experimento (tests/eval/pensamento_classificador.py), 50 de
+        # 50 acertos, como no padrão do modelo, com 6 tokens de pensamento em vez de 131.
+        generate_content_config=types.GenerateContentConfig(
+            temperature=0,
+            thinking_config=types.ThinkingConfig(
+                thinking_level=types.ThinkingLevel.LOW
+            ),
+        ),
     )
 
 
