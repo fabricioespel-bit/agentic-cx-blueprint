@@ -75,6 +75,10 @@ jobs:
       - name: Resumo da avaliação
         if: always()
         run: uv run python tests/eval/resumo.py >> "$GITHUB_STEP_SUMMARY"
+      - name: Uso e custo da avaliação
+        if: always()
+        # O diário nasce vazio no CI: só os turnos desta avaliação. Só números, sem texto.
+        run: uv run python -m app.observabilidade.relatorio artifacts/auditoria/diario.jsonl >> "$GITHUB_STEP_SUMMARY"
       - name: Guardar os resultados
         if: always()
         uses: actions/upload-artifact@v4

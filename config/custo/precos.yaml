@@ -1,0 +1,30 @@
+# Preços dos modelos usados pelo agente, por milhão de tokens, para estimar custo (P6.3).
+#
+# O custo é calculado na consulta, não gravado na auditoria: a trilha guarda tokens, e a
+# tabela pode mudar sem reprocessar nada. Estimativa, não fatura: confira a data e a fonte.
+#
+# Como o Gemini cobra: tokens de pensamento são cobrados como saída; tokens vindos do cache
+# entram no total de entrada, mas com o preço de cache. Faixas de preço para pedidos longos
+# (acima de 200 mil tokens) não se aplicam aqui: os pedidos do agente têm centenas de tokens.
+#
+# Fora daqui: SDP e Model Armor, cobrados por volume analisado, não por token.
+
+moeda: USD
+consultado_em: 2026-10-07 # AAAA-MM-DD
+fonte: https://cloud.google.com/vertex-ai/generative-ai/pricing # URL da página de preços consultada
+
+modelos:
+  gemini-3.8-flash:
+  - a_partir_de: null
+    entrada: 0.75
+    entrada_cache: 0.075
+    saida: 3.75 # resposta e raciocínio
+  - a_partir_de: 2027-01-01
+    entrada: 1.50
+    entrada_cache: 0.150
+    saida: 7.50 # resposta e raciocínio
+  gemini-2.5-pro:
+    - a_partir_de: null
+      entrada: 1.25
+      entrada_cache: 0.125
+      saida: 10.00 # resposta e raciocínio
