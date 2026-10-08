@@ -159,10 +159,15 @@ def relatorio(turnos: list[dict], tabela: TabelaDePrecos) -> str:
         modelos = ", ".join(sorted({c["modelo"] for c in chamadas}))
         custos = custo_por_no[no]
         custo = f"{sum(custos) / len(custos):.6f}" if custos else "-"
+        # Chamada respondida sem o campo (o Gemini omite pensamento zero) conta como 0;
+        # chamada que terminou em erro, sem nenhuma contagem, fica fora da média.
+        respondidas = [c for c in chamadas if c.get("tokens_entrada") is not None]
+        entrada, saida, pensamento = (
+            _media([c.get(campo) or 0 for c in respondidas])
+            for campo in ("tokens_entrada", "tokens_saida", "tokens_pensamento")
+        )
         linhas.append(
-            f"| {no} | {modelos} | {_media([c.get('tokens_entrada') for c in chamadas])} | "
-            f"{_media([c.get('tokens_saida') for c in chamadas])} | "
-            f"{_media([c.get('tokens_pensamento') for c in chamadas])} | {custo} |"
+            f"| {no} | {modelos} | {entrada} | {saida} | {pensamento} | {custo} |"
         )
 
     linhas += [

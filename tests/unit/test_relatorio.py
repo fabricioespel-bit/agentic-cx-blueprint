@@ -113,3 +113,20 @@ def test_diario_ignora_registro_sem_uso_e_rotula_pelo_desfecho(tmp_path):
 
 def test_sem_turnos():
     assert relatorio([], TABELA) == "Nenhum turno com uso registrado.\n"
+
+
+def test_pensamento_ausente_conta_como_zero_na_media():
+    # O Gemini omite o campo quando não pensa: 3 chamadas sem o campo e 1 com 40
+    # pensaram 10 em média, não 40.
+    sem = _chamada("classificador", 100, 10, None)
+    com = _chamada("classificador", 100, 10, 40)
+    turno = {
+        "sessao": "s",
+        "dia": DIA,
+        "intencao": "x",
+        "duracao_ms": 1,
+        "llm": [sem, sem, sem, com],
+    }
+    texto = relatorio([turno], TABELA)
+    linha = next(x for x in texto.splitlines() if "| gemini-3.8-flash |" in x)
+    assert "| 100 | 10 | 10 |" in linha
