@@ -9,6 +9,14 @@ conhecimento oficial do banco e executa transações simples, com uma tese centr
 
 O banco é fictício (**Banco Exemplo**), e todos os dados são inventados.
 
+## Demonstração
+
+[Vídeo no YouTube](https://www.youtube.com/watch?v=bIEXAugOFgY), com capítulos. A **parte 1** (cerca de 3 min)
+mostra o atendimento: dúvidas com fonte, bloqueio de cartão com confirmação, dado pessoal mascarado, tentativa
+de injeção e encaminhamento ao atendente. A **parte 2** mostra o que acontece por dentro: arquitetura, o único
+passo com LLM, auditoria, trace, custo e qualidade. O roteiro está em [docs/demo/roteiro.md](docs/demo/roteiro.md)
+e serve também para a demonstração ao vivo.
+
 ## O que roda hoje
 
 O **agente funciona de ponta a ponta** para cartões: bloqueio (com escolha do cartão e confirmação), consulta

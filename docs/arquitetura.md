@@ -154,6 +154,8 @@ monitoramento, correlação com a trilha de auditoria.
 | Uso, latência e custo por turno | ✅ Implementado (P6.1, P6.3): a trilha de auditoria grava a duração do turno e, por chamada ao LLM, nó, modelo, duração e tokens; custo calculado na consulta com a tabela de preços vigente na data do turno (`config/custo/precos.yaml`); relatório por etapa, conversa e intenção (`app/observabilidade/relatorio.py`, do diário ou do BigQuery) e no resumo de cada avaliação no CI. Estimativa só do LLM (SDP e Model Armor fora). [Evidência](evidencias/observabilidade-2026-10-08.md) |
 | Traces OpenTelemetry sem o texto da conversa | ✅ Implementado (P6.2): captura de conteúdo do ADK travada desligada (teste de controle prova o vazamento sem a trava); spans próprios só com metadados (mascaramento, filtro de entrada, sistema de cartões); envio ao Cloud Trace pela API de telemetria, ligado no CI; `trace_id` no registro de auditoria. Bucket de traces em `us` (criado antes da configuração de local; sem dado pessoal) |
 | Coletor OpenTelemetry, métricas e alertas (latência, erro, custo) | 📋 Proposto |
+| Demonstração em vídeo | ✅ Feita (P7): [vídeo](https://www.youtube.com/watch?v=bIEXAugOFgY) com o agente rodando localmente, no playground do ADK; [roteiro](demo/roteiro.md) |
+| Deploy no Agent Runtime e acesso de demonstração | 📋 Proposto: exige aprovação; antes, tratar a latência (camada de throughput do Gemini) |
 
 Decisões e alternativas descartadas: [decisoes.md](decisoes.md). Plano de execução:
 [plano-prototipo.md](plano-prototipo.md).

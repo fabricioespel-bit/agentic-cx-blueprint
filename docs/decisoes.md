@@ -336,5 +336,9 @@ Quando uma decisão mudar, atualize esta página.
   é a latência, não o custo (p95 do turno de 24 s a 48 s, conforme o momento). Alavancas: limitar o pensamento,
   revisar os prazos, cache semântico, cache de contexto, modelo menor no classificador, limite de turnos
   ([evidência](evidencias/observabilidade-2026-10-08.md)).
+- **Protótipo encerrado sem red team ampliado, gate e deploy.** → Descartado: fechar a P5 antes da
+  demonstração. → A tese ("o LLM interpreta, a regra autoriza") já está provada por testes, avaliação no CI e
+  vídeo; o que falta depende de mais execuções estáveis (gate), de casos novos (red team, vários turnos) ou de
+  custo fixo e aprovação (deploy, RAG Engine). Fica registrado como proposto.
 - **Roadmap.** Promoção por intenção (fundação → shadow → assistido → autônomo em conhecimento → autônomo em
   transações), critérios definidos antes, regressão automática em violação de segurança.
