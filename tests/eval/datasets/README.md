@@ -92,7 +92,7 @@ user message; `eval generate` appends the next agent response.
 
 You can create custom datasets in two ways:
 
-1. **By Hand**: Copy `basic-dataset.json` as a template and manually add evaluation cases.
+1. **By Hand**: Copy `conhecimento.json` as a template and manually add evaluation cases.
 2. **Synthesize**: Use the synthetic dataset generation command to generate conversation scenarios:
    ```bash
    agents-cli eval dataset synthesize --count 10

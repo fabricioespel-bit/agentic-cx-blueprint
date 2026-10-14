@@ -40,7 +40,9 @@ class Svg:
         self.parts: list[str] = []
 
     def box(self, x, y, w, h, lines, kind="new", rx=6):
-        self.parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" class="{kind}"/>')
+        self.parts.append(
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" class="{kind}"/>'
+        )
         lh = 14
         y0 = y + h / 2 - (len(lines) - 1) * lh / 2 + 4
         for i, line in enumerate(lines):
@@ -50,14 +52,29 @@ class Svg:
             )
 
     def bound(self, x, y, w, h, label):
-        self.parts.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" class="bound"/>')
-        self.parts.append(f'<text x="{x + 10}" y="{y + 15}" class="b">{escape(label)}</text>')
+        self.parts.append(
+            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" class="bound"/>'
+        )
+        self.parts.append(
+            f'<text x="{x + 10}" y="{y + 15}" class="b">{escape(label)}</text>'
+        )
 
-    def arrow(self, pts, label=None, at=None, dashed=False, both=False, anchor="middle", rotate=None):
+    def arrow(
+        self,
+        pts,
+        label=None,
+        at=None,
+        dashed=False,
+        both=False,
+        anchor="middle",
+        rotate=None,
+    ):
         d = " ".join(f"{x},{y}" for x, y in pts)
         start = ' marker-start="url(#m)"' if both else ""
         cls = "ad" if dashed else "a"
-        self.parts.append(f'<polyline points="{d}" class="{cls}" marker-end="url(#m)"{start}/>')
+        self.parts.append(
+            f'<polyline points="{d}" class="{cls}" marker-end="url(#m)"{start}/>'
+        )
         if label:
             lx, ly = at
             tr = f' transform="rotate({rotate} {lx} {ly})"' if rotate else ""
@@ -66,7 +83,9 @@ class Svg:
             )
 
     def text(self, x, y, s, cls="s", anchor="start"):
-        self.parts.append(f'<text x="{x}" y="{y}" text-anchor="{anchor}" class="{cls}">{escape(s)}</text>')
+        self.parts.append(
+            f'<text x="{x}" y="{y}" text-anchor="{anchor}" class="{cls}">{escape(s)}</text>'
+        )
 
     def raw(self, s):
         self.parts.append(s)
@@ -81,21 +100,40 @@ class Svg:
 
 def legenda(s: Svg, x, y, itens):
     for kind, label in itens:
-        s.raw(f'<rect x="{x}" y="{y - 9}" width="14" height="10" rx="2" class="{kind}"/>')
+        s.raw(
+            f'<rect x="{x}" y="{y - 9}" width="14" height="10" rx="2" class="{kind}"/>'
+        )
         s.text(x + 19, y, label)
         x += 19 + len(label) * 6 + 18
 
 
 def contexto():
     s = Svg(362)
-    legenda(s, 330, 22, [("new", "novo (escopo)"), ("exist", "existente"), ("ext", "externo"), ("person", "pessoa")])
+    legenda(
+        s,
+        330,
+        22,
+        [
+            ("new", "novo (escopo)"),
+            ("exist", "existente"),
+            ("ext", "externo"),
+            ("person", "pessoa"),
+        ],
+    )
     s.box(50, 8, 150, 40, ["Cliente"], "person", rx=18)
     s.box(50, 85, 190, 50, ["App do banco", "canal + fator de autenticação"], "exist")
     s.box(260, 85, 220, 50, ["WhatsApp", "Meta + provedor"], "ext")
     s.box(720, 85, 140, 50, ["Atendente humano"], "person", rx=18)
     s.bound(50, 160, 630, 95, "Plataforma de atendimento")
     s.box(70, 185, 240, 55, ["Atendimento existente", "preservado"], "exist")
-    s.box(340, 185, 320, 55, ["Camada agêntica (nova)", "assistente + blueprint replicável"], "new")
+    s.box(
+        340,
+        185,
+        320,
+        55,
+        ["Camada agêntica (nova)", "assistente + blueprint replicável"],
+        "new",
+    )
     s.box(720, 185, 140, 55, ["CRM / atendimento", "handoff, fila, protocolo"], "ext")
     bottom = [
         ["Provedor de identidade", "token e nível"],
@@ -115,7 +153,13 @@ def contexto():
     s.arrow([(680, 245), (700, 245), (700, 275), (782, 275), (782, 295)])
     s.arrow([(680, 212), (720, 212)])
     s.arrow([(790, 135), (790, 185)])
-    s.arrow([(50, 110), (25, 110), (25, 325), (40, 325)], "vínculo e step-up", (20, 218), dashed=True, rotate=-90)
+    s.arrow(
+        [(50, 110), (25, 110), (25, 325), (40, 325)],
+        "vínculo e step-up",
+        (20, 218),
+        dashed=True,
+        rotate=-90,
+    )
     s.save("diagrama-1.svg")
 
 
@@ -123,21 +167,106 @@ def containers():
     s = Svg(480)
     s.box(40, 8, 200, 40, ["WhatsApp (Meta + provedor)"], "ext")
     s.box(255, 8, 140, 40, ["App do banco"], "exist")
-    s.box(440, 8, 200, 40, ["Plataforma de IA (Gemini)", "global · sem identificadores"], "ext")
+    s.box(
+        440,
+        8,
+        200,
+        40,
+        ["Plataforma de IA (Gemini)", "global · sem identificadores"],
+        "ext",
+    )
     s.bound(20, 65, 860, 330, "Plataforma de atendimento")
-    s.box(40, 90, 300, 58, ["① Gateway de canal · Cloud Run", "dedup, identidade, mascaramento (SDP, SP),", "roteador, botões, placeholders"])
+    s.box(
+        40,
+        90,
+        300,
+        58,
+        [
+            "① Gateway de canal · Cloud Run",
+            "dedup, identidade, mascaramento (SDP, SP),",
+            "roteador, botões, placeholders",
+        ],
+    )
     s.box(600, 90, 260, 58, ["Atendimento existente", "bot ou fluxo legado"], "exist")
-    s.box(40, 175, 220, 58, ["⑥ Cofre de sessão · Firestore SP", "token + dados reais · expira", "IAM: só gateway e MCP"])
-    s.box(300, 175, 260, 58, ["② Agente · ADK no Agent Runtime", "grafo com LLM nos nós", "um por área de negócio"])
-    s.box(600, 175, 260, 58, ["⑧ Guardrails gerenciados", "Model Armor (EUA),", "sobre texto pseudonimizado"])
-    s.box(40, 260, 200, 58, ["③ Política · Cloud Run", "catálogo assinado + piso", "confirmação amarrada"])
-    s.box(260, 260, 200, 58, ["④ Conhecimento", "RAG Engine SP + ingestão", "cache semântico"])
-    s.box(480, 260, 200, 58, ["⑤ Servidores MCP · Cloud Run", "um por domínio de sistema", "em nome do cliente"])
-    s.box(40, 335, 420, 45, ["⑨ Auditoria (imutável) · Observabilidade (OTel) · Avaliação", "todos os containers emitem traces e auditoria"])
+    s.box(
+        40,
+        175,
+        220,
+        58,
+        [
+            "⑥ Cofre de sessão · Firestore SP",
+            "token + dados reais · expira",
+            "IAM: só gateway e MCP",
+        ],
+    )
+    s.box(
+        300,
+        175,
+        260,
+        58,
+        [
+            "② Agente · ADK no Agent Runtime",
+            "grafo com LLM nos nós",
+            "um por área de negócio",
+        ],
+    )
+    s.box(
+        600,
+        175,
+        260,
+        58,
+        [
+            "⑧ Guardrails gerenciados",
+            "Model Armor (EUA),",
+            "sobre texto pseudonimizado",
+        ],
+    )
+    s.box(
+        40,
+        260,
+        200,
+        58,
+        ["③ Política · Cloud Run", "catálogo assinado + piso", "confirmação amarrada"],
+    )
+    s.box(
+        260,
+        260,
+        200,
+        58,
+        ["④ Conhecimento", "RAG Engine SP + ingestão", "cache semântico"],
+    )
+    s.box(
+        480,
+        260,
+        200,
+        58,
+        [
+            "⑤ Servidores MCP · Cloud Run",
+            "um por domínio de sistema",
+            "em nome do cliente",
+        ],
+    )
+    s.box(
+        40,
+        335,
+        420,
+        45,
+        [
+            "⑨ Auditoria (imutável) · Observabilidade (OTel) · Avaliação",
+            "todos os containers emitem traces e auditoria",
+        ],
+    )
     s.box(700, 335, 160, 45, ["⑦ Registro de execuções", "idempotência + outbox"])
     s.box(40, 420, 180, 50, ["Provedor de identidade"], "ext")
     s.box(230, 420, 200, 50, ["Monitoramento corporativo", "(ex.: Dynatrace)"], "ext")
-    s.box(480, 420, 200, 50, ["Sistemas do banco", "cartões, tarifas, CRM, antifraude"], "ext")
+    s.box(
+        480,
+        420,
+        200,
+        50,
+        ["Sistemas do banco", "cartões, tarifas, CRM, antifraude"],
+        "ext",
+    )
     s.box(700, 420, 160, 50, ["Barramento de eventos"], "ext")
     s.arrow([(140, 48), (140, 90)])
     s.arrow([(325, 48), (325, 90)])
@@ -149,12 +278,22 @@ def containers():
     s.arrow([(330, 233), (330, 246), (140, 246), (140, 260)], "pré-check", (235, 243))
     s.arrow([(400, 233), (400, 260)])
     s.arrow([(530, 233), (530, 260)], "ferramentas", (536, 252), anchor="start")
-    s.arrow([(500, 318), (500, 327), (170, 327), (170, 318)], "aplica a política", (335, 331))
+    s.arrow(
+        [(500, 318), (500, 327), (170, 327), (170, 318)],
+        "aplica a política",
+        (335, 331),
+    )
     s.arrow([(680, 289), (780, 289), (780, 335)])
     s.arrow([(780, 380), (780, 420)])
     s.arrow([(580, 318), (580, 420)], "via gateway de APIs", (586, 408), anchor="start")
     s.arrow([(310, 380), (310, 420)], "OTLP", (316, 404), anchor="start")
-    s.arrow([(40, 119), (10, 119), (10, 445), (40, 445)], "token do cliente", (6, 285), dashed=True, rotate=-90)
+    s.arrow(
+        [(40, 119), (10, 119), (10, 445), (40, 445)],
+        "token do cliente",
+        (6, 285),
+        dashed=True,
+        rotate=-90,
+    )
     s.save("diagrama-2.svg")
 
 
@@ -162,14 +301,72 @@ def componentes():
     s = Svg(300)
     s.bound(10, 8, 880, 285, "② Agente (ADK no Agent Runtime)")
     legenda(s, 560, 23, [("llm", "usa LLM"), ("new", "código determinístico")])
-    s.box(30, 36, 840, 30, ["Plugins do runner: observabilidade (OpenTelemetry) · emissor de auditoria"])
+    s.box(
+        30,
+        36,
+        840,
+        30,
+        ["Plugins do runner: observabilidade (OpenTelemetry) · emissor de auditoria"],
+    )
     s.box(30, 90, 190, 55, ["A. Classificador", "saída estruturada, calibrada"], "llm")
-    s.box(260, 90, 300, 55, ["B. Orquestrador (grafo)", "filtro de entrada (Model Armor) · esclarecer", "autenticar · confirmar · executar · escalar"])
-    s.box(600, 90, 270, 55, ["H. Configuração versionada", "instruções, persona, textos, critérios"])
-    s.box(30, 175, 250, 60, ["C. Agente de conhecimento", "cita fonte · recusa sem fonte", "F. roteador Flash → Pro"], "llm")
-    s.box(310, 175, 270, 60, ["D. Subfluxo transacional", "slots → política → confirmação", "→ execução · textos fixos"])
-    s.box(610, 175, 260, 60, ["E. Gestor de escalonamento", "gatilhos + resumo para o atendente"], "llm")
-    s.box(30, 252, 840, 32, ["G. Registro de ferramentas — leitura: C, D, E · escrita: somente D → RAG Engine, Política, Servidores MCP"])
+    s.box(
+        260,
+        90,
+        300,
+        55,
+        [
+            "B. Orquestrador (grafo)",
+            "filtro de entrada (Model Armor) · esclarecer",
+            "autenticar · confirmar · executar · escalar",
+        ],
+    )
+    s.box(
+        600,
+        90,
+        270,
+        55,
+        ["H. Configuração versionada", "instruções, persona, textos, critérios"],
+    )
+    s.box(
+        30,
+        175,
+        250,
+        60,
+        [
+            "C. Agente de conhecimento",
+            "cita fonte · recusa sem fonte",
+            "F. roteador Flash → Pro",
+        ],
+        "llm",
+    )
+    s.box(
+        310,
+        175,
+        270,
+        60,
+        [
+            "D. Subfluxo transacional",
+            "slots → política → confirmação",
+            "→ execução · textos fixos",
+        ],
+    )
+    s.box(
+        610,
+        175,
+        260,
+        60,
+        ["E. Gestor de escalonamento", "gatilhos + resumo para o atendente"],
+        "llm",
+    )
+    s.box(
+        30,
+        252,
+        840,
+        32,
+        [
+            "G. Registro de ferramentas — leitura: C, D, E · escrita: somente D → RAG Engine, Política, Servidores MCP"
+        ],
+    )
     s.arrow([(220, 117), (260, 117)])
     s.arrow([(330, 145), (330, 160), (155, 160), (155, 175)])
     s.arrow([(445, 145), (445, 175)])
@@ -180,8 +377,15 @@ def componentes():
 
 
 def sequencia():
-    parts = [("Cliente", 60), ("Gateway", 190), ("Agente", 330), ("Política", 470),
-             ("Servidor MCP", 600), ("Cartões", 730), ("Barramento", 845)]
+    parts = [
+        ("Cliente", 60),
+        ("Gateway", 190),
+        ("Agente", 330),
+        ("Política", 470),
+        ("Servidor MCP", 600),
+        ("Cartões", 730),
+        ("Barramento", 845),
+    ]
     x = dict(parts)
     msgs = [
         ("Cliente", "Gateway", "1 perdi a carteira, bloqueia", False),
@@ -207,13 +411,26 @@ def sequencia():
     for name, cx in parts:
         w = 104
         s.raw(f'<line x1="{cx}" y1="36" x2="{cx}" y2="{h - 4}" class="life"/>')
-        kind = "person" if name == "Cliente" else ("ext" if name in ("Cartões", "Barramento") else "new")
+        kind = (
+            "person"
+            if name == "Cliente"
+            else ("ext" if name in ("Cartões", "Barramento") else "new")
+        )
         s.box(cx - w / 2, 6, w, 30, [name], kind, rx=18 if kind == "person" else 6)
     for i, (a, b, label, ret) in enumerate(msgs):
         y = y0 + i * step
         if a == b:
-            s.raw(f'<rect x="{x[a] + 4}" y="{y - 12}" width="290" height="16" rx="3" class="llm"/>')
-            s.arrow([(x[a], y - 6), (x[a] + 22, y - 6), (x[a] + 22, y + 2), (x[a] + 2, y + 2)])
+            s.raw(
+                f'<rect x="{x[a] + 4}" y="{y - 12}" width="290" height="16" rx="3" class="llm"/>'
+            )
+            s.arrow(
+                [
+                    (x[a], y - 6),
+                    (x[a] + 22, y - 6),
+                    (x[a] + 22, y + 2),
+                    (x[a] + 2, y + 2),
+                ]
+            )
             s.text(x[a] + 28, y, label, "s")
             continue
         x1, x2 = x[a], x[b]
@@ -226,4 +443,7 @@ if __name__ == "__main__":
     containers()
     componentes()
     sequencia()
-    print("diagramas gerados:", ", ".join(sorted(p.name for p in OUT.glob("diagrama-*.svg"))))
+    print(
+        "diagramas gerados:",
+        ", ".join(sorted(p.name for p in OUT.glob("diagrama-*.svg"))),
+    )
